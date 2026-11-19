@@ -94,7 +94,7 @@ h1 em{font-style:normal;color:var(--mint)}
 .install .sub{color:var(--sub);font-size:14px;line-height:1.8}
 .install ul{padding-left:18px;color:var(--sub);font-size:13px;line-height:2}
 .install li::marker{color:var(--mint)}
-.codebox{border:1px solid rgba(170,198,234,.23);background:#090f18;border-radius:18px;overflow:hidden}
+.codebox{border:1px solid rgba(170,198,234,.23);background:#090f18;border-radius:18px;overflow:hidden;min-width:0;max-width:100%}
 .codehead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 19px;background:rgba(255,255,255,.035);border-bottom:1px solid var(--line);font:500 11px var(--mono);color:var(--sub)}
 .copy{background:transparent;color:var(--mint);border:1px solid var(--line);padding:8px 11px;border-radius:7px;font:500 10px var(--mono)}
 .copy:hover{background:rgba(124,230,191,.09)}
@@ -106,7 +106,7 @@ pre code{white-space:pre}
 .footer strong{color:var(--ink)}
 .footer a{color:var(--mint)}
 @media(max-width:980px){.navlinks{gap:14px}.hero{gap:28px}.arch-grid{grid-template-columns:1fr 28px 1fr 28px 1fr}.arch-box{padding:17px}}
-@media(max-width:760px){.nav{min-height:75px}.navlinks a:not(:last-child){display:none}.hero{grid-template-columns:1fr;padding-block:70px;gap:32px}.signal{max-width:600px;min-height:360px}.proof-grid{grid-template-columns:1fr 1fr}.arch-grid{display:grid;grid-template-columns:1fr;gap:10px}.arr{transform:rotate(90deg);height:24px}.install{grid-template-columns:1fr;gap:18px}.section-heading{align-items:flex-start;flex-direction:column}.section-heading .aside{max-width:600px}.section{padding-block:56px}}
+@media(max-width:760px){.nav{min-height:75px}.navlinks a:not(:last-child){display:none}.hero{grid-template-columns:1fr;padding-block:70px;gap:32px}.signal{max-width:600px;min-height:360px}.proof-grid{grid-template-columns:1fr 1fr}.arch-grid{display:grid;grid-template-columns:1fr;gap:10px}.arr{transform:rotate(90deg);height:24px}.install{grid-template-columns:minmax(0,1fr);gap:18px}.install>*{min-width:0}.section-heading{align-items:flex-start;flex-direction:column}.section-heading .aside{max-width:600px}.section{padding-block:56px}}
 @media(max-width:480px){.shell{width:min(100% - 32px,1180px)}.brand strong{font-size:12px}.brand span{font-size:8px}.navlinks{font-size:10px}.hero{padding-top:54px}.hero h1{font-size:clamp(40px,12vw,55px)}.lead{font-size:15px}.button{width:100%}.signal{padding:18px;border-radius:18px}.signal strong{font-size:37px}.proof-grid{grid-template-columns:1fr}.proof{min-height:0}.section-heading h2{font-size:31px}.footlinks{flex-direction:column;gap:15px}pre{font-size:10px;padding:15px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
 </style>
