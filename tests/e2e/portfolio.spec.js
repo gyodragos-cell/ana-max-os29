@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const portfolioSections = [
   "top",
+  "core-release",
   "capabilities",
   "architecture",
   "session",
@@ -10,7 +11,7 @@ const portfolioSections = [
   "projects"
 ];
 
-const pageRoutes = ["/", "/live.html", "/cv.html"];
+const pageRoutes = ["/", "/live.html", "/cv.html", "/core.html"];
 const viewportWidths = [320, 375, 390, 768, 1024, 1365];
 
 test("homepage navigation points to real sections and portfolio pages", async ({ page }) => {
@@ -41,7 +42,7 @@ test("homepage navigation points to real sections and portfolio pages", async ({
   expect(pageErrors).toEqual([]);
 });
 
-test("the three portfolio pages load without uncaught JavaScript errors", async ({ page }) => {
+test("the four portfolio pages load without uncaught JavaScript errors", async ({ page }) => {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
@@ -106,4 +107,37 @@ test("CV page exposes its title, Live Profile link and print control", async ({ 
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Clear evidence.");
   await expect(page.getByRole("link", { name: /Live Profile/i })).toBeVisible();
   await expect(page.getByText("Print / Save PDF", { exact: true })).toBeVisible();
+});
+
+
+test("verified OS29 Core v0.1.0 is visible from the home page", async ({ page }) => {
+  await page.goto("/");
+  const featured = page.locator("#core-release");
+  await expect(featured.getByRole("heading", { name: /OS29 Core v0\.1\.0/i })).toBeVisible();
+  await expect(featured).toContainText("91");
+  await expect(featured.getByRole("link", { name: /Explore the release/i })).toHaveAttribute("href", "./core.html");
+  await expect(featured.getByRole("link", { name: /Official v0\.1\.0/i })).toHaveAttribute(
+    "href",
+    "https://github.com/gyodragos-cell/ana-max-os29-core/releases/tag/v0.1.0"
+  );
+  await page.getByRole("link", { name: /Explore OS29 Core/i }).first().click();
+  await expect(page).toHaveURL(/core\.html$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Memory that");
+});
+
+test("Core release has the exact published links, install command and no private data", async ({ page }) => {
+  await page.goto("/core.html");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("keeps the work moving.");
+  await expect(page.locator(".brand .mark")).toHaveCSS("font-size", "20px");
+  await expect(page.getByRole("link", { name: /Get v0\.1\.0/i })).toHaveAttribute(
+    "href",
+    "https://github.com/gyodragos-cell/ana-max-os29-core/releases/tag/v0.1.0"
+  );
+  const commands = await page.locator("#windows-commands").textContent();
+  expect(commands).toContain("git clone --branch v0.1.0 https://github.com/gyodragos-cell/ana-max-os29-core.git");
+  expect(commands).not.toMatch(/C:\\Users\\|D:\\OS28_MEMORY|PC1313/);
+  await expect(page.getByRole("link", { name: /View verification CI/i })).toHaveAttribute(
+    "href",
+    "https://github.com/gyodragos-cell/ana-max-os29-core/actions/runs/44537253988"
+  );
 });
