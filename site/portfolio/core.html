@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0e16">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="OS29 Core v0.1.0: a verified, local-first Python toolkit for AI agent evidence, SQLite memory and work-unit continuity. Source, tests and release notes.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="OS29 Core v0.1.0 | Verified local-first tooling">
+<meta property="og:description" content="Real source. Reproducible tests. Local memory. Explore the official OS29 Core v0.1.0 release.">
+<meta property="og:url" content="https://gyodragos-cell.github.io/ana-max-os29/core.html">
+<title>OS29 Core v0.1.0 | ANA MAX Engineering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e16;--surface:#101723;--surface2:#151e2b;--ink:#f3f6fc;--sub:#b0bfd0;--muted:#8799af;--line:rgba(170,198,234,.18);--blue:#9fb2ff;--mint:#7ce6bf;--lav:#c7baff;--head:"Archivo",system-ui,sans-serif;--body:"Space Grotesk",system-ui,sans-serif;--mono:"IBM Plex Mono",Consolas,monospace}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);background:radial-gradient(ellipse 880px 580px at 89% 2%,rgba(99,93,179,.16),transparent 72%),radial-gradient(ellipse 800px 550px at -10% 34%,rgba(35,122,132,.10),transparent 72%),var(--bg);font:400 16px/1.65 var(--body)}
+body::before{content:"";pointer-events:none;position:absolute;inset:0 0 auto;min-height:850px;opacity:.16;background-image:linear-gradient(90deg,rgba(180,203,245,.10) 1px,transparent 1px),linear-gradient(rgba(180,203,245,.10) 1px,transparent 1px);background-size:76px 76px;mask-image:linear-gradient(#000,transparent)}
+a{color:inherit;text-decoration:none}
+a:focus-visible,button:focus-visible{outline:2px solid var(--mint);outline-offset:4px}
+a:hover{text-decoration:none}
+button{font:inherit;cursor:pointer}
+button:disabled{opacity:.6;cursor:not-allowed}
+::selection{background:#526f91;color:white}
+.shell{width:min(1180px,calc(100% - 48px));margin-inline:auto;position:relative}
+.skip{position:absolute;left:16px;top:-100px;z-index:10;background:var(--mint);color:#061312;padding:10px 16px;border-radius:8px}
+.skip:focus{top:12px}
+.topbar{border-bottom:1px solid var(--line);position:relative;background:rgba(8,12,19,.68)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:86px}
+.brand{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.mark{width:40px;height:40px;border:1px solid rgba(124,230,191,.45);background:linear-gradient(135deg,#1d4b50,#142332);display:grid;place-items:center;color:var(--mint);border-radius:12px;font:900 20px var(--head)}
+.brand strong{display:block;font:800 14px var(--head);letter-spacing:.12em}
+.brand span{display:block;color:var(--muted);font:500 9px var(--mono);letter-spacing:.14em;margin-top:3px}
+.navlinks{display:flex;align-items:center;gap:25px;font:500 11px var(--mono);color:var(--sub)}
+.navlinks a:hover{color:var(--mint)}
+.navlinks a:last-child{color:var(--mint)}
+.ribbon{border-bottom:1px solid var(--line);background:linear-gradient(90deg,rgba(101,199,177,.11),rgba(129,132,209,.08))}
+.ribbon .shell{display:flex;align-items:center;gap:10px;padding-block:11px;font:500 10px var(--mono);letter-spacing:.08em;color:#c6eade;flex-wrap:wrap}
+.pulse{height:7px;width:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 4px rgba(124,230,191,.12)}
+.ribbon .muted{color:var(--muted)}
+.hero{padding-block:105px 95px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:60px;align-items:center}
+.eyebrow{font:600 11px var(--mono);color:var(--mint);letter-spacing:.15em;text-transform:uppercase;display:flex;align-items:center;gap:11px}
+.eyebrow::before{content:"";width:23px;height:1px;background:var(--mint)}
+h1,h2,h3,p{margin-top:0}
+h1{font:900 clamp(46px,5.6vw,80px)/1.04 var(--head);letter-spacing:-.059em;margin:23px 0}
+h1 em{font-style:normal;color:var(--mint)}
+.lead{font-size:17px;color:var(--sub);line-height:1.8;max-width:570px}
+.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:29px}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:15px 21px;border-radius:11px;border:1px solid var(--line);font:700 12px var(--body);letter-spacing:.02em;min-height:48px;transition:transform .15s,border-color .15s,background .15s}
+.button:hover{transform:translateY(-2px);border-color:rgba(124,230,191,.62)}
+.button-primary{background:var(--mint);color:#0a1a1c;border-color:var(--mint)}
+.button-primary:hover{background:#b5ffe0;color:#071618}
+.button-ghost{background:rgba(255,255,255,.035)}
+.helper{font:400 11px var(--mono);color:var(--muted);line-height:1.8;margin:20px 0 0}
+.signal{position:relative;background:linear-gradient(153deg,rgba(33,48,65,.94),rgba(14,21,32,.98));border:1px solid rgba(164,185,236,.24);box-shadow:0 38px 90px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.08);border-radius:24px;padding:24px;overflow:hidden;min-height:424px}
+.signal::after{content:"";position:absolute;width:250px;height:250px;right:-100px;top:-110px;background:radial-gradient(circle,rgba(124,230,191,.17),transparent 70%);pointer-events:none}
+.signal-top{display:flex;align-items:center;justify-content:space-between;gap:12px;font:500 10px var(--mono);color:var(--sub);text-transform:uppercase;letter-spacing:.10em;border-bottom:1px solid var(--line);padding-bottom:19px}
+.dots{display:flex;gap:5px}.dots i{display:block;width:6px;height:6px;border:1px solid rgba(196,218,237,.45);border-radius:50%}.dots i:first-child{background:var(--mint);border-color:var(--mint)}
+.signal strong{font:800 42px var(--head);display:block;margin:30px 0 4px;letter-spacing:-.06em}
+.signal .version{color:var(--mint);font:600 12px var(--mono)}
+.signal p{color:var(--sub);font-size:13px;max-width:280px;line-height:1.8;margin:10px 0 30px}
+.trace{border:1px solid var(--line);border-radius:13px;background:rgba(4,10,19,.65);padding:17px;display:grid;gap:13px;font:500 11px var(--mono)}
+.trace-row{display:flex;align-items:center;gap:10px;color:#b8c8d8;line-height:1.5}
+.trace-row b{font-weight:500;color:var(--mint)}
+.trace-row span:first-child{color:#6f88a6;min-width:25px}
+.trace-row:last-child{color:var(--mint)}
+.signal-foot{display:flex;align-items:center;justify-content:space-between;margin-top:18px;gap:10px;font:500 10px var(--mono);color:var(--muted)}
+.signal-foot a{color:var(--mint)}
+.section{padding-block:76px;border-top:1px solid var(--line)}
+.section-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:25px;margin-bottom:32px}
+.section-heading h2{font:900 clamp(28px,3.1vw,42px)/1.18 var(--head);letter-spacing:-.04em;margin:12px 0 0}
+.section-heading .aside{max-width:340px;color:var(--sub);font-size:13px;line-height:1.8}
+.small-label{font:600 10px var(--mono);letter-spacing:.15em;color:var(--mint);text-transform:uppercase}
+.proof-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.proof{border:1px solid var(--line);border-radius:16px;padding:26px;background:linear-gradient(160deg,rgba(32,47,64,.65),rgba(12,20,31,.68));min-height:210px}
+.proof .step{font:500 10px var(--mono);color:var(--muted);letter-spacing:.1em}
+.proof strong{display:block;margin:21px 0 8px;font:800 clamp(28px,3vw,39px)/1.1 var(--head);letter-spacing:-.045em}
+.proof p{color:var(--sub);font-size:13px;line-height:1.8;margin:0}
+.proof small{color:var(--mint);font:500 10px var(--mono)}
+.arch-grid{display:grid;grid-template-columns:1fr 38px 1.2fr 38px 1fr;gap:12px;align-items:stretch}
+.arch-box{min-height:195px;padding:25px;border-radius:16px;background:rgba(19,31,44,.8);border:1px solid var(--line)}
+.arch-box.primary{border-color:rgba(124,230,191,.42);background:linear-gradient(165deg,rgba(24,64,64,.58),rgba(15,26,37,.92))}
+.arch-box .step{font:500 10px var(--mono);color:var(--mint)}
+.arch-box h3{font:800 21px var(--head);letter-spacing:-.03em;margin:16px 0 8px}
+.arch-box p{font-size:13px;line-height:1.7;color:var(--sub);margin:0}
+.arr{display:grid;place-items:center;font-size:27px;color:var(--muted)}
+.boundary{margin-top:24px;border-left:2px solid var(--mint);padding:12px 20px;background:rgba(124,230,191,.065);color:var(--sub);font-size:13px;line-height:1.85}
+.boundary strong{color:var(--ink)}
+.install{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:40px;align-items:start}
+.install .sub{color:var(--sub);font-size:14px;line-height:1.8}
+.install ul{padding-left:18px;color:var(--sub);font-size:13px;line-height:2}
+.install li::marker{color:var(--mint)}
+.codebox{border:1px solid rgba(170,198,234,.23);background:#090f18;border-radius:18px;overflow:hidden}
+.codehead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 19px;background:rgba(255,255,255,.035);border-bottom:1px solid var(--line);font:500 11px var(--mono);color:var(--sub)}
+.copy{background:transparent;color:var(--mint);border:1px solid var(--line);padding:8px 11px;border-radius:7px;font:500 10px var(--mono)}
+.copy:hover{background:rgba(124,230,191,.09)}
+pre{margin:0;padding:22px 20px;overflow:auto;color:#c5e1ff;font:400 12px/2 var(--mono);tab-size:2}
+pre code{white-space:pre}
+.footlinks{display:flex;gap:12px;flex-wrap:wrap;margin-top:17px;font:500 12px var(--mono)}
+.footlinks a{color:var(--mint);text-decoration:underline;text-decoration-color:rgba(124,230,191,.4);text-underline-offset:5px}
+.footer{border-top:1px solid var(--line);padding-block:31px 45px;display:flex;align-items:center;justify-content:space-between;gap:16px;color:var(--muted);font:400 11px var(--mono);flex-wrap:wrap}
+.footer strong{color:var(--ink)}
+.footer a{color:var(--mint)}
+@media(max-width:980px){.navlinks{gap:14px}.hero{gap:28px}.arch-grid{grid-template-columns:1fr 28px 1fr 28px 1fr}.arch-box{padding:17px}}
+@media(max-width:760px){.nav{min-height:75px}.navlinks a:not(:last-child){display:none}.hero{grid-template-columns:1fr;padding-block:70px;gap:32px}.signal{max-width:600px;min-height:360px}.proof-grid{grid-template-columns:1fr 1fr}.arch-grid{display:grid;grid-template-columns:1fr;gap:10px}.arr{transform:rotate(90deg);height:24px}.install{grid-template-columns:1fr;gap:18px}.section-heading{align-items:flex-start;flex-direction:column}.section-heading .aside{max-width:600px}.section{padding-block:56px}}
+@media(max-width:480px){.shell{width:min(100% - 32px,1180px)}.brand strong{font-size:12px}.brand span{font-size:8px}.navlinks{font-size:10px}.hero{padding-top:54px}.hero h1{font-size:clamp(40px,12vw,55px)}.lead{font-size:15px}.button{width:100%}.signal{padding:18px;border-radius:18px}.signal strong{font-size:37px}.proof-grid{grid-template-columns:1fr}.proof{min-height:0}.section-heading h2{font-size:31px}.footlinks{flex-direction:column;gap:15px}pre{font-size:10px;padding:15px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="topbar"><div class="shell nav">
+<a class="brand" href="./index.html" aria-label="Return to ANA MAX portfolio"><span class="mark">A</span><span><strong>ANA MAX</strong><span>ENGINEERING / OS29</span></span></a>
+<nav class="navlinks" aria-label="Primary navigation"><a href="./index.html">Portfolio</a><a href="#architecture">Architecture</a><a href="#validation">Evidence</a><a href="#install">Quick start</a><a href="https://github.com/gyodragos-cell/ana-max-os29-core/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">Release ↗</a></nav>
+</div></header>
+<div class="ribbon"><div class="shell"><span class="pulse" aria-hidden="true"></span><span>PUBLIC RELEASE · OS29 CORE v0.1.0</span><span class="muted">/ SOURCE-ONLY / VERIFIED 19 NOV 2026</span></div></div>
+<main id="content" class="shell">
+<section class="hero" aria-labelledby="core-title">
+<div>
+<div class="eyebrow">LOCAL-FIRST PYTHON TOOLING</div>
+<h1 id="core-title">Memory that <em>keeps the work moving.</em></h1>
+<p class="lead">A portable evidence and continuity layer for AI-assisted workflows. Persist traces, search local SQLite records and resume work from an ID — without bundling your private environment.</p>
+<div class="cta"><a class="button button-primary" href="https://github.com/gyodragos-cell/ana-max-os29-core" target="_blank" rel="noopener noreferrer">Explore source <span aria-hidden="true">↗</span></a><a class="button button-ghost" href="https://github.com/gyodragos-cell/ana-max-os29-core/releases/tag/v0.1.0" target="_blank" rel="noopener noreferrer">Get v0.1.0 <span aria-hidden="true">↗</span></a></div>
+<p class="helper">Open source · MIT license · No private memory or live OS28 runtime included.</p>
+</div>
+<div class="signal" aria-label="Illustrative local memory and work-unit continuity flow">
+<div class="signal-top"><span>OS29 / EVIDENCE BUS</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></div>
+<strong>Work Unit</strong><span class="version">RESUME BY ID / v0.1.0</span>
+<p>Three explicit stages, each inspectable. Diagram only; no live tool connection is running on this page.</p>
+<div class="trace">
+<div class="trace-row"><span>01</span><b>CAPTURE</b> <span>trace + evidence</span></div>
+<div class="trace-row"><span>02</span><b>PERSIST</b> <span>local SQLite</span></div>
+<div class="trace-row"><span>03</span><b>RESUME</b> <span>work-unit context</span></div>
+</div>
+<div class="signal-foot"><span>CONCEPTUAL FLOW / NOT LIVE TELEMETRY</span><a href="#architecture">How it works ↘</a></div>
+</div>
+</section>
+<section class="section" id="validation" aria-labelledby="validation-title">
+<div class="section-heading"><div><div class="small-label">01 / PUBLISHED EVIDENCE</div><h2 id="validation-title">Proof before promises.</h2></div><p class="aside">Results below refer to the verified v0.1.0 release preparation, not a continuously updating service status.</p></div>
+<div class="proof-grid">
+<article class="proof"><span class="step">01 / AUTOMATED TESTS</span><strong>91 <small>PASS</small></strong><p>Python suite validated in clean Windows and Ubuntu CI environments.</p></article>
+<article class="proof"><span class="step">02 / PRIVACY GATE</span><strong>0 <small>FINDINGS</small></strong><p>Source allowlist and mandatory Gitleaks checks passed on release preparation.</p></article>
+<article class="proof"><span class="step">03 / REPRODUCIBILITY</span><strong>2 <small>PLATFORMS</small></strong><p>Clean Python 3.12 installation tested on Windows and Ubuntu.</p></article>
+</div>
+<div class="footlinks"><a href="https://github.com/gyodragos-cell/ana-max-os29-core/actions/runs/44537253988" target="_blank" rel="noopener noreferrer">View verification CI ↗</a><a href="https://github.com/gyodragos-cell/ana-max-os29-core/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer">Security policy ↗</a></div>
+</section>
+<section class="section" id="architecture" aria-labelledby="arch-title">
+<div class="section-heading"><div><div class="small-label">02 / ARCHITECTURE</div><h2 id="arch-title">An open interface.<br>Private data stays local.</h2></div><p class="aside">OS29 is model-neutral infrastructure. It doesn't host an AI model, run a remote controller or automatically sync your data to GitHub.</p></div>
+<div class="arch-grid">
+<div class="arch-box"><span class="step">OPERATOR / MODEL</span><h3>Your AI client</h3><p>User-supplied agent or developer integration. The model and its decisions live outside OS29.</p></div>
+<div class="arr" aria-hidden="true">→</div>
+<div class="arch-box primary"><span class="step">OS29 CORE</span><h3>Evidence + continuity</h3><p>Work Units, trace events, checkpoint receipts and local FTS5/BM25 lexical search.</p></div>
+<div class="arr" aria-hidden="true">→</div>
+<div class="arch-box"><span class="step">USER-CONTROLLED STATE</span><h3>Local SQLite</h3><p>An installation-owned database. No user memory ships with the public release.</p></div>
+</div>
+<div class="boundary"><strong>Where OS28 fits:</strong> OS28 refers to a separate local tool-infrastructure layer. The public Core includes a minimal optional provider contract and a deterministic offline mock, <strong>not</strong> the private OS28 gateway or a proven live connection. FTS5 is lexical search, not semantic RAG.</div>
+</section>
+<section class="section install" id="install" aria-labelledby="install-title">
+<div><div class="small-label">03 / RUN IT LOCALLY</div><div class="section-heading"><h2 id="install-title">Clone. Install.<br>Verify.</h2></div><p class="sub">The quick start targets the exact public release tag. It installs Python development dependencies and runs tests against temporary local data — not a private lab database.</p>
+<ul><li>Python 3.11 or newer required.</li><li>Use the virtual-environment interpreter after setup.</li><li>Internet may be needed to install dependencies.</li><li>The smoke test does not require OS28, Ollama or a live Gateway.</li></ul>
+<div class="footlinks"><a href="https://github.com/gyodragos-cell/ana-max-os29-core/blob/main/docs/QUICK_START.md" target="_blank" rel="noopener noreferrer">Complete quick start ↗</a><a href="https://github.com/gyodragos-cell/ana-max-os29-core/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener noreferrer">Technical architecture ↗</a></div>
+</div>
+<div>
+<div class="codebox"><div class="codehead"><span>TERMINAL / WINDOWS</span><button class="copy" type="button" data-copy="windows-commands" aria-label="Copy Windows install commands">Copy commands</button></div>
+<pre><code id="windows-commands">git clone --branch v0.1.0 https://github.com/gyodragos-cell/ana-max-os29-core.git
+cd ana-max-os29-core
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[test]"
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe scripts\offline_smoke.py</code></pre></div>
+<p id="copy-result" class="helper" role="status" aria-live="polite">Code runs locally. This portfolio doesn't execute commands or collect inputs.</p>
+</div>
+</section>
+</main>
+<footer class="shell footer"><div><strong>ANA MAX / OS29 CORE</strong><span> · v0.1.0 · factual, source-linked presentation</span></div><div><a href="./index.html">Portfolio ↗</a> · <a href="./live.html">Live Profile ↗</a> · <a href="./cv.html">CV ↗</a></div></footer>
+<script>
+(function(){
+  "use strict";
+  var button=document.querySelector("[data-copy]");
+  var status=document.getElementById("copy-result");
+  if(!button||!status)return;
+  button.addEventListener("click",async function(){
+    var element=document.getElementById(button.getAttribute("data-copy"));
+    if(!element)return;
+    try {
+      if(!navigator.clipboard||!navigator.clipboard.writeText)throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(element.textContent.trim());
+      status.textContent="Commands copied. Run them in your own terminal.";
+      button.textContent="Copied";
+    } catch(error) {
+      status.textContent="Clipboard unavailable here. Select the code above to copy manually.";
+      button.textContent="Select code";
+    }
+  });
+})();
+</script>
+</body>
+</html>
