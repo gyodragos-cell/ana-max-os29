@@ -1,9 +1,10 @@
 # Changelog
 
-## 2026-10-20 — OS29-only public source tree
+## Unreleased — clean OS29 Core proposal
 
-- Published the isolated OS29 core, integrations, tests and selected technical documentation.
-- Reorganized the premium portfolio under `site/portfolio/`; GitHub Pages stages only the three approved HTML pages.
-- Added separate OS29 pytest/compile/Frida-JS CI and browser Playwright E2E workflows.
-- Excluded runtime SQLite databases, logs, artifacts, browser profiles, caches, local target IDs, private memory sources and machine-specific MCP configuration.
-- Preserved a recoverable branch of the prior mixed repository: `archive/pre-os29-clean-rebuild-2026-10-20`.
+- Curated portable OS29 core and WorkUnitService code.
+- MCP STDIO and CLI with generic local configuration defaults.
+- Optional OS28 provider interface with deterministic offline mock.
+- Local privacy scanner, CI, automated tests and isolated smoke.
+- Security boundary and documentation; no private runtime data shipped.
+- Public Git history intentionally left intact.

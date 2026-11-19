@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 import sys
+import socket
+import datetime
 from pathlib import Path
 from typing import Any
 
@@ -11,10 +13,12 @@ from .intelligence import build_intelligence_report
 from .models import TraceEvent, new_id
 from .runtime_snapshot import snapshot_loopback
 from .scope import ScopePolicy
-from .retrieval import search_memory
+from .retrieval import refresh_memory_index, search_memory
+from .local_answer import answer_from_memory, DEFAULT_MODEL
 from .store import Store
 from .tools import terminal_exec, file_read, file_write, code_search
 from .telemetry import log_tool_call, log_tool_result, log_error, log_startup, log_shutdown
+from .work_units import WorkUnitService
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,12 +26,137 @@ DB_PATH = Path(os.environ.get("OS29_DB_PATH", str(ROOT / "data" / "os29.db")))
 SCOPE_PATH = Path(os.environ.get("OS29_SCOPE_PATH", str(ROOT / "config" / "lab_scope.json")))
 PROTOCOL_VERSION = "2024-11-05"
 
+# ── Tower tools — compact lab context ────────────────────────────────────────
+
+_TOWER_PORTS = {}
+
+_AGENTS = []
+
+_LAB_STACK = {"os": sys.platform, "python": sys.version.split()[0], "canonical_db": str(DB_PATH), "workspaces": [], "out_of_scope": []}
+
+
+def _probe_port(port: int, timeout: float = 0.4) -> str:
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=timeout):
+            return "UP"
+    except OSError:
+        return "DOWN"
+
+
+def _capsule_payload(capsule_record: dict[str, Any]) -> dict[str, Any]:
+    """Unwrap the current Store envelope and the older payload envelope."""
+    value = capsule_record.get("capsule")
+    if isinstance(value, dict):
+        return value
+    value = capsule_record.get("payload")
+    if isinstance(value, dict):
+        return value
+    return capsule_record
+
+
+def _tower_bootstrap(store: Store, agent_id: str, mission_id: str | None = None) -> dict:
+    """~116 token compact lab context. Called first by any agent."""
+    ts = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+    # Live port probe (fast, non-blocking)
+    ports_live = {f"{p}_{name}": _probe_port(p) for p, name in _TOWER_PORTS.items()}
+    # Active sessions (last 3) — store uses list_session_records
+    try:
+        sessions_raw = store.list_session_records(limit=3)
+        sessions = [{"id": s.get("session_id", "?"), "title": s.get("title") or s.get("payload", {}).get("title", "?")} for s in sessions_raw]
+    except Exception:
+        sessions = []
+    # Active mission if requested — store uses get_capsule(mission_id)
+    mission = None
+    if mission_id:
+        try:
+            cap = store.get_capsule(mission_id)
+            if cap:
+                p = _capsule_payload(cap)
+                mission = {"project": p.get("project", "?"), "objective": p.get("objective", "?"), "next_steps": p.get("next_steps", [])[:3]}
+        except Exception:
+            mission = {"error": f"mission {mission_id!r} not found"}
+    return {
+        "lab": "local installation",
+        "profile": "user-configured",
+        "canonical_db": _LAB_STACK["canonical_db"],
+        "stack": _LAB_STACK,
+        "agents": _AGENTS,
+        "ports_live": ports_live,
+        "recent_sessions": sessions,
+        "active_mission": mission,
+        "agent_id": agent_id,
+        "timestamp_utc": ts,
+        "hint": "Call os29_session_list(limit=3) and os29_memory_search(query=<topic>) for deeper context.",
+    }
+
+
+def _tower_resume(store: Store, mission_id: str) -> dict:
+    """Return mission capsule as compact context (~116 tokens)."""
+    try:
+        cap = store.get_capsule(mission_id)
+        if not cap:
+            return {"error": f"Mission '{mission_id}' not found in OS29."}
+        payload = _capsule_payload(cap)
+        return {
+            "mission_id": mission_id,
+            "project": payload.get("project", "?"),
+            "objective": payload.get("objective", "?"),
+            "current_state": payload.get("current_state", {}),
+            "next_steps": payload.get("next_steps", [])[:5],
+            "open_issues": payload.get("open_issues", [])[:5],
+            "known_good": payload.get("known_good", [])[:5],
+        }
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def _tower_checkpoint(store: Store, mission_id: str, payload: dict) -> dict:
+    """Save a mission checkpoint to OS29."""
+    required = {"project", "objective", "current_state", "known_good", "known_bad", "open_issues", "next_steps"}
+    missing = required - set(payload.keys())
+    if missing:
+        return {"error": f"Missing required fields: {sorted(missing)}. Add them and retry."}
+    try:
+        result = store.save_capsule(mission_id, payload)
+        return {"saved": True, "mission_id": mission_id, "result": result}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def _tower_memory_search(store: Store, query: str, limit: int = 8, scope: str = "all") -> dict:
+    """Search OS29 memory and return compact results via existing _dispatch logic."""
+    source_map = {
+        "all": None,
+        "experience": ["experience"],
+        "session": ["session"],
+        "capsule": ["capsule"],
+        "event": ["event"],
+        "document": ["document"],
+    }
+    source_types = source_map.get(scope)
+    try:
+        # Use existing search_memory module function (same as os29_memory_search dispatch)
+        raw_result = search_memory(store, query, limit=limit, include_candidates=False, source_types=source_types)
+        results = raw_result.get("results", [])
+        compact = []
+        for r in results:
+            compact.append({
+                "type": r.get("source_type", r.get("type", "?")),
+                "title": r.get("title", r.get("problem_key", r.get("kind", "?")))[:80],
+                "snippet": str(r.get("summary", r.get("solution", r.get("content", ""))))[:200],
+            })
+        return {"query": query, "scope": scope, "count": len(compact), "results": compact}
+    except Exception as exc:
+        return {"error": str(exc), "query": query}
+
+
 
 def schemas() -> list[dict[str, Any]]:
     def obj(properties: dict[str, Any] | None = None, required: list[str] | None = None) -> dict[str, Any]:
         return {"type": "object", "properties": properties or {}, "required": required or [], "additionalProperties": False}
     string = {"type": "string"}
     integer = {"type": "integer", "minimum": 1, "maximum": 2000}
+    string_list = {"type": "array", "items": string}
     return [
         {"name": "os29_status", "description": "Read-only counts/status of the persistent OS29 evidence store.", "inputSchema": obj()},
         {"name": "os29_runtime_snapshot", "description": "Read-only HTTP health probes against fixed 127.0.0.1 OS28 ports; never starts/stops a service.", "inputSchema": obj()},
@@ -38,15 +167,36 @@ def schemas() -> list[dict[str, Any]]:
         {"name": "os29_capability_edges_list", "description": "Read observed relationships between capability/world-model nodes.", "inputSchema": obj({"limit": integer})},
         {"name": "os29_mission_capsule_get", "description": "Read a persistent OS29 mission capsule.", "inputSchema": obj({"mission_id": string}, ["mission_id"])},
         {"name": "os29_mission_capsule_save", "description": "Persist an operator/agent mission checkpoint. Secrets are redacted; required state fields must be present.", "inputSchema": obj({"mission_id": string, "capsule": obj({"project": string, "objective": string, "current_state": {}, "known_good": {"type": "array"}, "known_bad": {"type": "array"}, "open_issues": {"type": "array"}, "next_steps": {"type": "array"}}, ["project", "objective", "current_state", "known_good", "known_bad", "open_issues", "next_steps"])}, ["mission_id", "capsule"])},
+        {"name": "os29_work_unit_create", "description": "Create one canonical OS29 Work Unit V1. It reuses mission_capsules for state and trace_events for evidence; no parallel memory is created.", "inputSchema": obj({"work_id": string, "project": string, "objective": string, "owner_agent": string, "allowed_scope": string_list, "current_state": {"type": "object"}, "known_good": string_list, "known_bad": string_list, "open_issues": string_list, "next_steps": string_list, "context_refs": string_list}, ["work_id", "project", "objective", "owner_agent", "allowed_scope", "current_state", "known_good", "known_bad", "open_issues", "next_steps", "context_refs"])},
+        {"name": "os29_work_unit_get", "description": "Read one canonical OS29 Work Unit V1 by work_id.", "inputSchema": obj({"work_id": string}, ["work_id"])},
+        {"name": "os29_work_unit_list", "description": "List current OS29 Work Unit V1 summaries backed only by canonical mission capsules.", "inputSchema": obj({"limit": {"type": "integer", "minimum": 1, "maximum": 100}})},
+        {"name": "os29_evidence_receipt_record", "description": "Append a durable evidence receipt to the Work Unit trace. Does not replace prior evidence.", "inputSchema": obj({"work_id": string, "actor_agent": string, "action": string, "outcome": {"type": "string", "enum": ["observed", "success", "failure", "error", "blocked", "unknown"]}, "evidence": {"type": "object"}, "next_action": string, "idempotency_key": string}, ["work_id", "actor_agent", "action", "outcome", "evidence", "next_action"])},
+        {"name": "os29_work_unit_handoff", "description": "Hand a canonical OS29 Work Unit V1 from one agent to another; the receiving agent can resume with work_id only.", "inputSchema": obj({"work_id": string, "from_agent": string, "to_agent": string, "summary": string, "next_action": string}, ["work_id", "from_agent", "to_agent", "summary", "next_action"])},
+        {"name": "os29_work_unit_resume", "description": "Recover a compact Work Unit V1 context using only its work_id, including last durable evidence receipt and next action.", "inputSchema": obj({"work_id": string, "agent_id": string}, ["work_id", "agent_id"])},
+        {"name": "os29_work_unit_checkpoint", "description": "Atomically update a canonical Work Unit with revision check, actual tests, files and next steps; replays with the same idempotency key do not duplicate events.", "inputSchema": obj({"work_id": string, "actor_agent": string, "expected_revision": integer, "current_state": {"type": "object"}, "next_steps": string_list, "files_touched": string_list, "tools_used": string_list, "tests": {"type": "array", "items": {"type": "object"}}, "artifacts": string_list, "open_issues": string_list, "idempotency_key": string}, ["work_id", "actor_agent", "expected_revision", "current_state", "next_steps"])},
+        {"name": "os29_work_unit_complete", "description": "Complete only after persisted command/exit_code=0/stdout evidence; atomic version check.", "inputSchema": obj({"work_id": string, "actor_agent": string, "expected_revision": integer}, ["work_id", "actor_agent", "expected_revision"])},
+        {"name": "os29_work_unit_fail", "description": "Mark a Work Unit blocked with a durable reason and revision check.", "inputSchema": obj({"work_id": string, "actor_agent": string, "expected_revision": integer, "reason": string}, ["work_id", "actor_agent", "expected_revision", "reason"])},
+        {"name": "os29_work_unit_receipt", "description": "Read canonical Work Unit Evidence Receipt as JSON and Markdown derived from the OS29 trace.", "inputSchema": obj({"work_id": string}, ["work_id"])},
+        {"name": "os29_work_unit_receipt_export", "description": "Write a canonical Evidence Receipt JSON and Markdown under a user-configured local receipt directory.", "inputSchema": obj({"work_id": string}, ["work_id"])},
+        {"name": "os29_session_save", "description": "Append one immutable, redacted ChatGPT/local session checkpoint for cross-account continuity. Identical retries are idempotent.", "inputSchema": obj({"session_id": {"type": "string", "minLength": 1, "maxLength": 128}, "payload": obj({"title": {"type": "string"}, "summary": {"type": "string"}, "objective": string, "decisions": {"type": "array"}, "tests": {"type": "array"}, "files_changed": {"type": "array"}, "incidents": {"type": "array"}, "next_steps": {"type": "array"}, "transcript_excerpt": string, "conversation_id": string, "started_at": string, "ended_at": string, "tags": {"type": "array"}, "project": string, "conversation_part": integer, "conversation_parts": integer, "source_file": string, "source_sha256": string}, ["title", "summary"]), "source": {"type": "string", "enum": ["chatgpt_session", "chatgpt_export", "manual"]}, "ended_at": string}, ["session_id", "payload"])},
+        {"name": "os29_session_get", "description": "Retrieve a saved local session checkpoint by immutable session ID.", "inputSchema": obj({"session_id": string}, ["session_id"])},
+        {"name": "os29_session_list", "description": "List recent local session checkpoints.", "inputSchema": obj({"limit": {"type": "integer", "minimum": 1, "maximum": 100}})},
         {"name": "os29_trace_record", "description": "Persist one normalized os29.trace.v1 observation with automatic redaction.", "inputSchema": obj({"event": {"type": "object"}}, ["event"])},
         {"name": "os29_experience_search", "description": "Search evidence-linked experience; only validated lessons are returned by default.", "inputSchema": obj({"query": string, "include_candidates": {"type": "boolean"}, "limit": integer}, ["query"])},
-        {"name": "os29_memory_search", "description": "Search the persistent local memory across trace events, incidents, mission capsules, capabilities, experiences and explicitly approved local text documents using redacted SQLite FTS5/BM25 retrieval. Candidate lessons are excluded by default; semantic embeddings are not enabled.", "inputSchema": obj({"query": string, "limit": {"type": "integer", "minimum": 1, "maximum": 100}, "include_candidates": {"type": "boolean"}, "source_types": {"type": "array", "items": {"type": "string", "enum": ["event", "incident", "capsule", "experience", "capability", "document"]}}}, ["query"])},
-        {"name": "os29_experience_candidate_add", "description": "Record an unvalidated candidate lesson linked to persisted source event IDs. This tool cannot mark a lesson validated.", "inputSchema": obj({"problem_key": string, "cause": string, "solution": string, "outcome": {"type": "string", "enum": ["success", "failure", "partial", "unknown"]}, "source_event_ids": {"type": "array", "items": string}}, ["problem_key", "cause", "solution", "outcome", "source_event_ids"])},
+        {"name": "os29_memory_search", "description": "Search the persistent local memory across trace events, incidents, mission capsules, capabilities, experiences and explicitly approved local text documents using redacted SQLite FTS5/BM25 retrieval. Candidate lessons are excluded by default; semantic embeddings are not enabled.", "inputSchema": obj({"query": string, "limit": {"type": "integer", "minimum": 1, "maximum": 100}, "include_candidates": {"type": "boolean"}, "source_types": {"type": "array", "items": {"type": "string", "enum": ["event", "incident", "capsule", "experience", "capability", "document", "session"]}}}, ["query"])},
+        {"name": "os29_memory_answer", "description": "Answer a question from approved OS29 evidence using structured citations and the already-running local Ollama at 127.0.0.1:11434 only. Never starts a model/service. Candidate/rejected evidence is excluded; invalid citations or answers needing review return MCP isError=true.", "inputSchema": obj({"query": {"type": "string", "minLength": 1, "maxLength": 2000}, "model": {"type": "string", "maxLength": 120}, "limit": {"type": "integer", "minimum": 1, "maximum": 6}, "timeout_seconds": {"type": "number", "minimum": 1, "maximum": 90}, "num_ctx": {"type": "integer", "minimum": 512, "maximum": 4096}, "num_predict": {"type": "integer", "minimum": 16, "maximum": 512}, "source_types": {"type": "array", "maxItems": 6, "items": {"type": "string", "enum": ["event", "incident", "capsule", "experience", "capability", "document", "session"]}}, "retrieval_query": {"type": "string", "maxLength": 2000}}, ["query"])},
+        {"name": "os29_experience_validate", "description": "Validate and promote an experience candidate based on linked verification event.", "inputSchema": obj({"lesson_id": string, "verification_event_id": string, "verified_by": string, "confidence": {"type": "number", "minimum": 0.5, "maximum": 1.0}}, ["lesson_id", "verification_event_id", "verified_by"])},
+        {"name": "os29_experience_candidate_add" , "description": "Record an unvalidated candidate lesson linked to persisted source event IDs. This tool cannot mark a lesson validated.", "inputSchema": obj({"problem_key": string, "cause": string, "solution": string, "outcome": {"type": "string", "enum": ["success", "failure", "partial", "unknown"]}, "source_event_ids": {"type": "array", "items": string}}, ["problem_key", "cause", "solution", "outcome", "source_event_ids"])},
         {"name": "os29_intelligence_report", "description": "Unified evidence-first Agent DNA, Memory of Failure/REM, Regret candidates, Skill Distillation and Discovery report. No auto-start, unverified causal claims or candidate promotion.", "inputSchema": obj({"event_limit": {"type": "integer", "minimum": 1, "maximum": 1000}})},
         {"name": "os29_terminal_exec", "description": "Execute a shell command locally in the lab with timeout and captured output.", "inputSchema": obj({"command": string, "cwd": string, "timeout_seconds": integer}, ["command"])},
         {"name": "os29_file_read", "description": "Read file lines with safe bounds and encoding handling.", "inputSchema": obj({"path": string, "start_line": integer, "end_line": integer}, ["path"])},
         {"name": "os29_file_write", "description": "Write or overwrite a file in the workspace.", "inputSchema": obj({"path": string, "content": string, "overwrite": {"type": "boolean"}}, ["path", "content"])},
         {"name": "os29_code_search", "description": "Search regex pattern across code and files.", "inputSchema": obj({"pattern": string, "search_path": string, "max_results": integer, "case_sensitive": {"type": "boolean"}}, ["pattern"])},
+        # ── Tower tools ──────────────────────────────────────────────────────────
+        {"name": "tower_bootstrap", "description": "Return a compact (~116 token) lab context for any agent at session start: stack, agents, live port status, recent sessions. Optionally loads an active mission capsule. CALL THIS FIRST.", "inputSchema": obj({"agent_id": string, "mission_id": string}, ["agent_id"])},
+        {"name": "tower_resume", "description": "Load a mission capsule from OS29 as compact context. Use to resume work without re-explaining everything.", "inputSchema": obj({"mission_id": string}, ["mission_id"])},
+        {"name": "tower_checkpoint", "description": "Save a mission checkpoint to OS29. Requires: project, objective, current_state, known_good, known_bad, open_issues, next_steps.", "inputSchema": obj({"mission_id": string, "payload": {"type": "object"}}, ["mission_id", "payload"])},
+        {"name": "tower_memory_search", "description": "Search OS29 memory across all sources and return compact results. Scope: all|experience|session|capsule|event|document.", "inputSchema": obj({"query": string, "limit": {"type": "integer", "minimum": 1, "maximum": 50}, "scope": {"type": "string", "enum": ["all", "experience", "session", "capsule", "event", "document"]}}, ["query"])},
     ]
 
 
@@ -66,7 +216,10 @@ def call_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
     _start   = log_tool_call(name, trace_id)
     try:
         result  = _dispatch(store, name, args, trace_id)
-        outcome = "failure" if isinstance(result, dict) and result.get("isError") else "success"
+        if name == "os29_memory_answer" and isinstance(result, dict):
+            outcome = "success" if result.get("answer_status") in {"grounded", "evidence_insufficient"} else "failure"
+        else:
+            outcome = "failure" if isinstance(result, dict) and result.get("isError") else "success"
         log_tool_result(name, trace_id, _start, outcome)
         return result
     except Exception as exc:
@@ -117,6 +270,42 @@ def _dispatch(store: Store, name: str, args: dict[str, Any], trace_id: str) -> d
         return value
     if name == "os29_mission_capsule_save":
         return store.save_capsule(str(args["mission_id"]), args["capsule"])
+    if name == "os29_work_unit_create":
+        return WorkUnitService(store).create(**args)
+    if name == "os29_work_unit_get":
+        return WorkUnitService(store).get(work_id=str(args["work_id"]))
+    if name == "os29_work_unit_list":
+        return WorkUnitService(store).list(limit=int(args.get("limit", 50)))
+    if name == "os29_evidence_receipt_record":
+        return WorkUnitService(store).record_evidence_receipt(**args)
+    if name == "os29_work_unit_handoff":
+        return WorkUnitService(store).handoff(**args)
+    if name == "os29_work_unit_resume":
+        return WorkUnitService(store).resume(work_id=str(args["work_id"]), agent_id=str(args["agent_id"]))
+    if name == "os29_work_unit_checkpoint":
+        return WorkUnitService(store).checkpoint(**args)
+    if name == "os29_work_unit_complete":
+        return WorkUnitService(store).complete(**args)
+    if name == "os29_work_unit_fail":
+        return WorkUnitService(store).fail(**args)
+    if name == "os29_work_unit_receipt":
+        return WorkUnitService(store).receipt(work_id=str(args["work_id"]))
+    if name == "os29_work_unit_receipt_export":
+        return WorkUnitService(store).export_receipt(work_id=str(args["work_id"]))
+    if name == "os29_session_save":
+        saved = store.save_session_record(
+            str(args["session_id"]), args["payload"],
+            source=str(args.get("source", "chatgpt_session")),
+            ended_at=args.get("ended_at"),
+        )
+        return {"saved": saved, "memory_index": refresh_memory_index(store)}
+    if name == "os29_session_get":
+        value = store.get_session_record(str(args["session_id"]))
+        if not value:
+            raise ValueError("session record not found")
+        return value
+    if name == "os29_session_list":
+        return {"sessions": store.list_session_records(limit=int(args.get("limit", 20)))}
     if name == "os29_trace_record":
         event = TraceEvent.from_dict(args["event"])
         return store.record_event(event)
@@ -136,6 +325,32 @@ def _dispatch(store: Store, name: str, args: dict[str, Any], trace_id: str) -> d
             limit=int(args.get("limit", 10)),
             include_candidates=bool(args.get("include_candidates", False)),
             source_types=args.get("source_types", []),
+        )
+    if name == "os29_memory_answer":
+        allowed = {
+            "query", "model", "limit", "timeout_seconds", "num_ctx",
+            "num_predict", "source_types", "retrieval_query",
+        }
+        unsupported = sorted(set(args) - allowed)
+        if unsupported:
+            raise ValueError("unsupported os29_memory_answer arguments: " + ", ".join(unsupported))
+        return answer_from_memory(
+            store,
+            args["query"],
+            model=args.get("model", DEFAULT_MODEL),
+            limit=args.get("limit", 4),
+            timeout_seconds=args.get("timeout_seconds", 45.0),
+            num_ctx=args.get("num_ctx", 2048),
+            num_predict=args.get("num_predict", 192),
+            source_types=args.get("source_types"),
+            retrieval_query=args.get("retrieval_query"),
+        )
+    if name == "os29_experience_validate":
+        return store.validate_experience(
+            lesson_id=str(args["lesson_id"]),
+            verification_event_id=str(args["verification_event_id"]),
+            verified_by=str(args["verified_by"]),
+            confidence=float(args.get("confidence", 0.9)),
         )
     if name == "os29_experience_candidate_add":
         return store.record_experience(
@@ -164,6 +379,23 @@ def _dispatch(store: Store, name: str, args: dict[str, Any], trace_id: str) -> d
         return file_write(str(args["path"]), str(args["content"]), overwrite=bool(args.get("overwrite", True)))
     if name == "os29_code_search":
         return code_search(str(args["pattern"]), search_path=args.get("search_path"), max_results=int(args.get("max_results", 50)), case_sensitive=bool(args.get("case_sensitive", False)))
+    # ── Tower tools ──────────────────────────────────────────────────────────
+    if name == "tower_bootstrap":
+        return _tower_bootstrap(store, agent_id=str(args["agent_id"]), mission_id=args.get("mission_id"))
+    if name == "tower_resume":
+        return _tower_resume(store, mission_id=str(args["mission_id"]))
+    if name == "tower_checkpoint":
+        payload = args.get("payload", {})
+        if not isinstance(payload, dict):
+            raise ValueError("tower_checkpoint: payload must be a JSON object")
+        return _tower_checkpoint(store, mission_id=str(args["mission_id"]), payload=payload)
+    if name == "tower_memory_search":
+        return _tower_memory_search(
+            store,
+            query=str(args["query"]),
+            limit=int(args.get("limit", 8)),
+            scope=str(args.get("scope", "all")),
+        )
     raise ValueError(f"unimplemented OS29 tool: {name}")
 
 
@@ -197,7 +429,12 @@ def handle(message: Any) -> dict[str, Any] | None:
             return {"jsonrpc": "2.0", "id": request_id, "result": _content({"error": "arguments_must_be_object"}, True)}
         try:
             result = call_tool(str(name), args)
-            return {"jsonrpc": "2.0", "id": request_id, "result": _content(result)}
+            mcp_tool_error = (
+                str(name) == "os29_memory_answer"
+                and isinstance(result, dict)
+                and result.get("answer_status") not in {"grounded", "evidence_insufficient"}
+            )
+            return {"jsonrpc": "2.0", "id": request_id, "result": _content(result, is_error=mcp_tool_error)}
         except (ValueError, KeyError, TypeError, OSError) as exc:
             return {"jsonrpc": "2.0", "id": request_id, "result": _content({"error": str(exc)}, True)}
     return {"jsonrpc": "2.0", "id": request_id, "error": {"code": -32601, "message": "Method not found"}}

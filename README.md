@@ -1,104 +1,100 @@
-# ANA MAX OS29
-## Operational Intelligence · Local-First · Evidence-Driven
+# OS29 Core
 
-OS29 is a local-first operational-intelligence layer for traceable diagnostics, bounded tools and evidence-linked memory. It is designed to make system observations inspectable and to keep the difference between **declared**, **configured**, **running**, **tested**, **degraded** and **unknown** capabilities explicit.
+**Local evidence, memory and continuity for AI agents — not another AI model.**
 
-This repository is the clean OS29 source tree. It does not include the historical OS27/OS28 workspace, browser profiles, local runtime databases, private memory sources, cache trees, local logs or machine-specific MCP client configuration. Optional OS28 adapters are kept at the integration boundary; the OS28 implementation itself is not bundled here.
+OS29 is a Python library and MCP-compatible local service for storing evidence,
+finding prior observations and handing work units between agent sessions. It
+does not itself reason, host a language model or promise autonomous decisions.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![OS29 local baseline](https://img.shields.io/badge/OS29%20local%20baseline-37%20passed-2e8b57.svg)](docs/VERIFICATION.md)
-[![Portfolio](https://img.shields.io/badge/Portfolio-GitHub%20Pages-5468ff.svg)](https://gyodragos-cell.github.io/ana-max-os29/)
+OS28 is a **separate tool-infrastructure layer**. The public
+integrations/os28 package is only a portable interface and a deterministic
+offline mock. It does not contain the proprietary or private local OS28
+implementation. Connecting an actual tool provider is optional.
+
+## The problem
+
+AI clients routinely lose context, repeat diagnostics and confuse observations
+with verified results. OS29 supplies a local record of what was done, where the
+evidence lives, what is still uncertain and the next safe action. The actual
+agent decides what to do with it.
 
 ## What is included
 
-- **Trace contract:** normalized events with stable IDs, parent lineage, timestamps and explicit outcomes.
-- **Redaction and bounded persistence:** sensitive-value masking, URL normalization and size limits before SQLite storage.
-- **Scope enforcement:** local-first host/port policy and exact device/process allowlists for optional Frida hooks.
-- **Evidence-linked diagnosis:** incidents and hypotheses preserve their source references; correlation is not presented as proven causation.
-- **Mission capsules and experiences:** candidate and validated experience states remain distinct; validation is an explicit local operator action.
-- **Capability map:** declared/configured/running/tested/degraded/offline/unknown states with evidence timestamps.
-- **Memory retrieval:** SQLite FTS5/BM25 over selected local evidence; lexical retrieval only, not semantic/vector RAG.
-- **MCP STDIO:** bounded local tool surface for observing and retrieving evidence.
-- **Optional HTTP API:** bearer-protected and loopback-bound; it is not started automatically.
+- SQLite-backed traces, mission capsules, work units and evidence receipts.
+- Checkpoints, handoff and resume by Work Unit ID using the same local store.
+- SQLite FTS5/BM25 **lexical** search, not vector or semantic AI reasoning.
+- Optional MCP STDIO provider, CLI and separately started HTTP gateway.
+- Portable OS28 provider contract, offline mock, tests and privacy checks.
+- No preloaded model, memory, database, real credentials or private logs.
 
-## Architecture at a glance
+## Architecture
 
-```text
-Local observations / approved adapters
-                 |
-                 v
-        os29.trace.v1 + redaction
-                 |
-                 v
-      SQLite events / incidents / capsules
-                 |
-                 +------> Capability graph
-                 |
-                 +------> FTS5 / BM25 retrieval
-                 |
-                 v
-       CLI + bounded MCP STDIO tools
-                 |
-                 v
-     Evidence review / candidate experience
-                 |
-                 v
-       Explicit local validation action
-```
-
-Read [the architecture](docs/ARCHITECTURE.md), [security model](docs/SECURITY_MODEL.md), [retrieval semantics](docs/MEMORY_RETRIEVAL.md) and [implementation status](docs/IMPLEMENTATION_STATUS.md) for the boundaries and open acceptance gates.
+    Operator-selected AI client / local model
+                    |
+             MCP STDIO / Python
+                    |
+             OS29 Core library
+          evidence | Work Units | search
+                    |
+              local SQLite
+                    |
+       Optional OS28 provider interface
+            (user-configured, mock by default)
 
 ## Quick start
 
-Python 3.11+ is required. Use an isolated environment; the core has no mandatory third-party runtime dependencies.
+Requires Python 3.11 or newer.
 
-### Windows PowerShell
+    git clone https://github.com/gyodragos-cell/ana-max-os29.git
+    cd ana-max-os29
+    python -m venv .venv
+    python -m pip install -e ".[test]"
+    python -m compileall -q os29 integrations examples scripts tests
+    python -m pytest -q
+    python scripts/privacy_gate.py
+    python scripts/offline_smoke.py
+    python -m os29.cli --help
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[test]"
-python -m os29.cli status
-python -m os29.cli snapshot
-python -m os29.cli intelligence
-python -m os29.cli memory-index
-python -m os29.cli memory-search "gateway" --limit 10
-python -m pytest -q
-node --check .\integrations\frida\os29_trace.js
-```
+For the proposed clean release, checkout branch release/os28-os29-clean
+before installing. On Windows, invoke the Python interpreter under
+.venv/Scripts; on Linux and macOS use .venv/bin.
 
-The default store path is local under `data/`; set `OS29_DB_PATH` and `OS29_SCOPE_PATH` to explicit paths when needed. Runtime databases, logs and generated artifacts are intentionally ignored by Git.
+The smoke test creates an isolated **temporary** SQLite database and removes it
+afterwards. The application does not need an existing private store, a lab
+computer, a gateway service or a network connection for these basic tests.
+Installing dependencies initially may require a package index.
 
-## MCP STDIO
+## Conceptual workflow
 
-Run the local companion from the repository root:
+1. Agent A creates a Work Unit with a project, objective and next action.
+2. Agent A records evidence and a checkpoint in a user-selected local database.
+3. Agent B opens that same database and resumes with only the Work Unit ID.
+4. Agent B independently verifies evidence before marking a task completed.
 
-```powershell
-python -m os29.mcp_stdio
-```
+The offline smoke proves persistence and resume across separate Store objects.
+It does **not** imply that two actual AI models executed the workflow.
 
-A compatible local MCP client can launch this process with the example in [config/OS29_MCP_CLIENT_CONFIG.example.json](config/OS29_MCP_CLIENT_CONFIG.example.json) after replacing its path placeholders. The public website does not connect to the visitor's machine and does not register this local MCP server in ChatGPT automatically.
+## Known limitations
 
-## Optional HTTP gateway
+- Work units are persisted context, not proof that a task is correct.
+- FTS5 search is lexical and depends on the local SQLite build.
+- Multi-machine replication and enterprise multi-user access are not shipped.
+- Optional network tools require operator-provided configuration and review.
+- No local AI inference engine, semantic embeddings, Frida or live OS28 gateway
+  are included.
+- This branch does not erase historic content from the public main Git history.
+- Documentation describes a developer preview, not a certified institution
+  deployment or a measured performance advantage.
 
-The HTTP API is separate from STDIO and is not started by default. It binds to loopback and refuses startup without a sufficiently long `OS29_GATEWAY_TOKEN`. Keep the endpoint private; loopback binding is not a substitute for per-operation authorization or an OS-level sandbox.
+## Documentation
 
-## Recorded local baseline
+- [Architecture](docs/ARCHITECTURE.md)
+- [Offline quick start](docs/QUICK_START.md)
+- [Security boundary](docs/SECURITY_BOUNDARY.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Public release boundary](PUBLIC_RELEASE_BOUNDARY.md)
+- [Security policy](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
 
-The local checkpoint dated **19 October 2026** recorded **37 passing tests**, **14 MCP STDIO tools**, and **375 lexical-index documents**. The checkpoint had **zero validated experiences**; candidate records are not promoted automatically. These are historical local measurements, not live counters or claims that all roadmap modules are complete. See [Verification](docs/VERIFICATION.md) and [Implementation status](docs/IMPLEMENTATION_STATUS.md).
-
-## Project limits — stated plainly
-
-- Retrieval is SQLite FTS5/BM25. Semantic embeddings, reranking and a model-mediated reasoning loop are not implemented.
-- No real authorized Android/USB target was connected in the recorded baseline; no real app hook or Frida-to-MITM correlation is claimed.
-- A measured, real fix/retest and a validated lesson retrieved in a later session remain acceptance gates.
-- SQLite is not encrypted at rest. Redaction is defensive and is not a perfect secret/PII detector.
-- The 30-module roadmap is a staged plan, not a statement that all modules are production-complete.
-
-## Public portfolio
-
-- [ANA MAX / OS29 portfolio](https://gyodragos-cell.github.io/ana-max-os29/)
-- [Live Profile demo](https://gyodragos-cell.github.io/ana-max-os29/live.html)
-- [Professional CV](https://gyodragos-cell.github.io/ana-max-os29/cv.html)
-
-The static portfolio demonstrates the presentation layer only. It does not execute OS29 commands or inspect local runtime state.
+MIT license: [LICENSE](LICENSE).

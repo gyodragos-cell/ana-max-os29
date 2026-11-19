@@ -10,7 +10,7 @@ from typing import Any, Iterable
 from .redaction import redact_value, sanitize_url
 from .store import Store
 
-SOURCE_TYPES = {"event", "incident", "capsule", "experience", "capability", "document"}
+SOURCE_TYPES = {"event", "incident", "capsule", "experience", "capability", "document", "session"}
 MAX_DOCUMENT_CHARS = 16_000
 MAX_QUERY_CHARS = 500
 MAX_QUERY_TERMS = 12
@@ -27,7 +27,7 @@ EVENT_ATTRIBUTE_ALLOWLIST = {
 
 
 def _text(value: Any, max_chars: int = 4000) -> str:
-    safe, _ = redact_value(value)
+    safe, _ = redact_value(value, max_length=max_chars)
     if isinstance(safe, str):
         text = safe
     else:
@@ -262,6 +262,10 @@ def _source_documents(store: Store) -> list[dict[str, Any]]:
         capability_rows = conn.execute(
             "SELECT kind, name, status, owner, observed_at FROM capability_nodes ORDER BY observed_at DESC LIMIT 10000"
         ).fetchall()
+        session_rows = conn.execute(
+            "SELECT session_id, created_at, source, title, payload_json, content_hash, redaction_count "
+            "FROM session_records ORDER BY created_at DESC LIMIT 5000"
+        ).fetchall()
 
     for row in event_rows:
         try:
@@ -338,6 +342,33 @@ def _source_documents(store: Store) -> list[dict[str, Any]]:
             source_ref=f"{row['kind']}:{row['name']}", title=title, body=body,
             trust_status=row["status"], observed_at=row["observed_at"],
             metadata={"kind": row["kind"], "name": row["name"], "status": row["status"], "owner": row["owner"]},
+        ))
+    for row in session_rows:
+        try:
+            payload = json.loads(row["payload_json"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+        # Index concise session facts; full transcript excerpts remain bounded and redacted.
+        body = "\n".join([
+            f"source: {row['source']}",
+            f"session_id: {row['session_id']}",
+            f"summary: {payload.get('summary', '')}",
+            f"objective: {payload.get('objective', '')}",
+            f"decisions: {_text(payload.get('decisions', []), 2500)}",
+            f"tests: {_text(payload.get('tests', []), 2500)}",
+            f"files_changed: {_text(payload.get('files_changed', []), 2500)}",
+            f"incidents: {_text(payload.get('incidents', []), 2000)}",
+            f"next_steps: {_text(payload.get('next_steps', []), 2500)}",
+            f"transcript_excerpt: {_text(payload.get('transcript_excerpt', ''), 10000)}",
+        ])
+        docs.append(_document(
+            doc_id=f"session:{row['session_id']}", source_type="session",
+            source_ref=row["session_id"], title=row["title"], body=body,
+            trust_status="local_session_record", observed_at=row["created_at"],
+            metadata={
+                "record_ref": row["session_id"], "source": row["source"],
+                "content_hash": row["content_hash"], "redaction_count": row["redaction_count"],
+            },
         ))
     docs.extend(_local_document_sources(store))
     return docs

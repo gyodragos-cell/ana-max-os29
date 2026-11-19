@@ -38,8 +38,8 @@ def test_url_removes_userinfo_and_redacts_sensitive_query():
 
 def test_scope_allows_only_explicit_loopback_host_and_port():
     policy = ScopePolicy(SCOPE)
-    assert policy.check_target("http://127.0.0.1:8766/health")["allowed"] is True
-    assert policy.check_target("http://localhost:8771/health")["allowed"] is True
+    assert policy.check_target("http://127.0.0.1:7777/health")["allowed"] is True
+    assert policy.check_target("http://localhost:7777/health")["allowed"] is True
     assert policy.check_target("http://127.0.0.1:8080/")["reason"] == "port_not_in_scope"
     assert policy.check_target("https://example.com/")["reason"] == "host_not_in_scope"
     assert policy.check_target("http://user:pass@127.0.0.1:8766/")["reason"] == "embedded_credentials_forbidden"

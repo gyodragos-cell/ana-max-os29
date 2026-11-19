@@ -89,6 +89,18 @@ class Store:
                     capsule_json TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS session_records (
+                    session_id TEXT PRIMARY KEY,
+                    created_at TEXT NOT NULL,
+                    ended_at TEXT,
+                    source TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    redaction_count INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE INDEX IF NOT EXISTS idx_session_records_created
+                    ON session_records(created_at DESC);
                 CREATE TABLE IF NOT EXISTS experiences (
                     lesson_id TEXT PRIMARY KEY,
                     problem_key TEXT NOT NULL,
@@ -295,12 +307,96 @@ class Store:
             )
         return {"mission_id": mission_id, "updated_at": now, "redactions": redactions, "capsule": safe}
 
+    def create_work_unit_capsule(
+        self, mission_id: str, capsule: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Insert once in canonical SQLite; never overwrite an existing work unit."""
+        if not isinstance(mission_id, str) or not mission_id.strip():
+            raise ValueError("work unit ID is required")
+        safe, redactions = redact_value(capsule)
+        if not isinstance(safe, dict) or safe.get("work_unit", {}).get("schema") != "os29.work_unit.v1":
+            raise ValueError("invalid Work Unit capsule")
+        encoded = _bounded_json(safe, MAX_CAPSULE_JSON_BYTES, "work unit capsule")
+        now = utc_now()
+        try:
+            with self._connect() as conn:
+                conn.execute(
+                    """INSERT INTO mission_capsules
+                       (mission_id, project, status, capsule_json, updated_at)
+                       VALUES(?,?,?,?,?)""",
+                    (mission_id, safe["project"], safe.get("status", "active"),
+                     encoded, now),
+                )
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("work unit already exists") from exc
+        return {"mission_id": mission_id, "updated_at": now,
+                "redactions": redactions, "capsule": safe}
+
+    def save_work_unit_if_revision(
+        self, mission_id: str, capsule: dict[str, Any], *, expected_revision: int
+    ) -> dict[str, Any]:
+        """Atomic compare-and-swap for an OS29 Work Unit stored in mission_capsules.
+
+        Two different agents cannot silently overwrite each other's checkpoints.
+        This does not introduce an additional database or table.
+        """
+        if not mission_id or not isinstance(capsule, dict):
+            raise ValueError("work unit ID and capsule are required")
+        safe, redactions = redact_value(capsule)
+        encoded = _bounded_json(safe, MAX_CAPSULE_JSON_BYTES, "work unit capsule")
+        now = utc_now()
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT capsule_json FROM mission_capsules WHERE mission_id=?",
+                (mission_id,),
+            ).fetchone()
+            if row is None:
+                raise ValueError("work unit not found")
+            previous = json.loads(row["capsule_json"])
+            current_unit = previous.get("work_unit", {})
+            if current_unit.get("schema") != "os29.work_unit.v1":
+                raise ValueError("mission capsule is not a Work Unit")
+            if current_unit.get("revision", 1) != expected_revision:
+                raise ValueError("work unit revision conflict: reload and retry")
+            if safe.get("work_unit", {}).get("revision") != expected_revision + 1:
+                raise ValueError("next work unit revision is invalid")
+            conn.execute(
+                """UPDATE mission_capsules
+                   SET project=?, status=?, capsule_json=?, updated_at=?
+                   WHERE mission_id=?""",
+                (safe["project"], safe.get("status", "active"), encoded, now, mission_id),
+            )
+        return {
+            "mission_id": mission_id, "updated_at": now,
+            "redactions": redactions, "capsule": safe,
+        }
+
     def get_capsule(self, mission_id: str) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute("SELECT capsule_json, updated_at FROM mission_capsules WHERE mission_id=?", (mission_id,)).fetchone()
         if not row:
             return None
         return {"mission_id": mission_id, "updated_at": row["updated_at"], "capsule": json.loads(row["capsule_json"])}
+
+    def list_capsules(self, limit: int = 100) -> list[dict[str, Any]]:
+        """Return persisted capsule envelopes, newest first, without creating another store."""
+        limit = max(1, min(int(limit), 1000))
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT mission_id, status, updated_at, capsule_json
+                   FROM mission_capsules ORDER BY updated_at DESC, rowid DESC LIMIT ?""",
+                (limit,),
+            ).fetchall()
+        return [
+            {
+                "mission_id": row["mission_id"],
+                "status": row["status"],
+                "updated_at": row["updated_at"],
+                "capsule": json.loads(row["capsule_json"]),
+            }
+            for row in rows
+        ]
 
     def record_experience(
         self,
@@ -547,6 +643,102 @@ class Store:
             result.append(item)
         return result
 
+    def save_session_record(
+        self,
+        session_id: str,
+        payload: dict[str, Any],
+        *,
+        source: str = "chatgpt_session",
+        ended_at: str | None = None,
+    ) -> dict[str, Any]:
+        """Append one immutable, redacted session checkpoint; identical retries are idempotent."""
+        if not isinstance(session_id, str) or not session_id.strip() or len(session_id) > 128:
+            raise ValueError("session_id must be 1-128 non-whitespace characters")
+        if not isinstance(source, str) or source not in {"chatgpt_session", "chatgpt_export", "manual"}:
+            raise ValueError("source must be chatgpt_session, chatgpt_export or manual")
+        if not isinstance(payload, dict):
+            raise ValueError("session payload must be a JSON object")
+        allowed = {
+            "project", "title", "objective", "summary", "decisions", "tests",
+            "files_changed", "incidents", "next_steps", "transcript_excerpt",
+            "conversation_id", "started_at", "ended_at", "tags",
+            "conversation_part", "conversation_parts", "source_file", "source_sha256",
+        }
+        extra = set(payload) - allowed
+        if extra:
+            raise ValueError("unknown session fields: " + ", ".join(sorted(extra)))
+        safe, redactions = redact_value(payload, max_length=12000)
+        if not isinstance(safe, dict):
+            raise ValueError("session payload must be an object")
+        for field in ("title", "summary"):
+            if not isinstance(safe.get(field), str) or not safe[field].strip():
+                raise ValueError(f"session {field} must be a non-empty string")
+        for field in ("decisions", "tests", "files_changed", "incidents", "next_steps", "tags"):
+            if field in safe and not isinstance(safe[field], list):
+                raise ValueError(f"session {field} must be a list")
+        if ended_at is not None:
+            if not isinstance(ended_at, str):
+                raise ValueError("ended_at must be ISO-8601 text or null")
+            from datetime import datetime
+            try:
+                datetime.fromisoformat(ended_at.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("ended_at must be ISO-8601") from exc
+        encoded = _bounded_json(safe, MAX_CAPSULE_JSON_BYTES, "session record")
+        import hashlib
+        hash_material = _bounded_json(
+            {"payload": safe, "source": source, "ended_at": ended_at},
+            MAX_CAPSULE_JSON_BYTES + 1024, "session record identity",
+        )
+        content_hash = hashlib.sha256(hash_material.encode("utf-8")).hexdigest()
+        legacy_payload_hash = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+        now = utc_now()
+        with self._connect() as conn:
+            # Serialize same-ID writers before the read/insert pair to make concurrent retries safe.
+            conn.execute("BEGIN IMMEDIATE")
+            existing = conn.execute(
+                "SELECT content_hash, created_at, redaction_count, source, ended_at FROM session_records WHERE session_id=?",
+                (session_id,),
+            ).fetchone()
+            if existing:
+                hashes_match = existing["content_hash"] in {content_hash, legacy_payload_hash}
+                provenance_matches = existing["source"] == source and existing["ended_at"] == ended_at
+                if not hashes_match or not provenance_matches:
+                    raise ValueError("session_id already exists with different content; session records are immutable")
+                return {
+                    "session_id": session_id, "created_at": existing["created_at"],
+                    "content_hash": existing["content_hash"], "redactions": existing["redaction_count"],
+                    "idempotent_replay": True,
+                }
+            conn.execute(
+                """INSERT INTO session_records
+                   (session_id, created_at, ended_at, source, title, payload_json, content_hash, redaction_count)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (session_id, now, ended_at, source, safe["title"], encoded, content_hash, redactions),
+            )
+        return {
+            "session_id": session_id, "created_at": now, "content_hash": content_hash,
+            "redactions": redactions, "idempotent_replay": False,
+        }
+
+    def get_session_record(self, session_id: str) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM session_records WHERE session_id=?", (session_id,)).fetchone()
+        if not row:
+            return None
+        result = dict(row)
+        result["payload"] = json.loads(result.pop("payload_json"))
+        return result
+
+    def list_session_records(self, *, limit: int = 20) -> list[dict[str, Any]]:
+        limit = max(1, min(int(limit), 100))
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT session_id, created_at, ended_at, source, title, content_hash, redaction_count "
+                "FROM session_records ORDER BY created_at DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def stats(self) -> dict[str, Any]:
         with self._connect() as conn:
             events = conn.execute("SELECT COUNT(*) FROM trace_events").fetchone()[0]
@@ -557,10 +749,12 @@ class Store:
             validated = conn.execute("SELECT COUNT(*) FROM experiences WHERE status='validated'").fetchone()[0]
             capabilities = conn.execute("SELECT COUNT(*) FROM capability_nodes").fetchone()[0]
             capability_edges = conn.execute("SELECT COUNT(*) FROM capability_edges").fetchone()[0]
+            session_records = conn.execute("SELECT COUNT(*) FROM session_records").fetchone()[0]
         return {
             "status": "ok", "schema_version": "os29.store.v1", "events": events,
             "traces": traces, "open_incidents": incidents, "mission_capsules": capsules,
             "experience_candidates": candidates, "validated_experiences": validated,
             "capability_nodes": capabilities, "capability_edges": capability_edges,
+            "session_records": session_records,
             "db_path": str(self.db_path),
         }

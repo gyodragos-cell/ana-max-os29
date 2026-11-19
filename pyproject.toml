@@ -5,8 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "os29-lab"
 version = "0.1.0"
-description = "ANA MAX OS29: evidence-first operational intelligence, scoped diagnostics and traceable local memory."
+description = "Local-first evidence, memory, diagnostics and work-unit continuity for AI agents."
+readme = "README.md"
 requires-python = ">=3.11"
+license = {file = "LICENSE"}
 dependencies = []
 
 [project.optional-dependencies]
@@ -16,9 +18,9 @@ test = ["pytest>=8"]
 os29 = "os29.cli:main"
 os29-gateway = "os29.gateway:main"
 
+[tool.setuptools.packages.find]
+include = ["os29*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
-
-[tool.setuptools.packages.find]
-include = ["os29*"]

@@ -142,7 +142,7 @@ def make_server(db_path: str | Path, token: str, host: str = "127.0.0.1", port: 
 
 def main() -> None:
     root = ROOT
-    db = Path(os.environ.get("OS29_DB_PATH", str(root / "data" / "os29.db")))
+    db = Path(os.environ.get("OS29_DB_PATH", str(Path.home() / ".os29" / "os29.db")))
     token = os.environ.get("OS29_GATEWAY_TOKEN", "")
     host = "127.0.0.1"
     port = int(os.environ.get("OS29_GATEWAY_PORT", "8790"))

@@ -158,3 +158,43 @@ def test_memory_search_indexes_only_explicit_local_document_sources(tmp_path: Pa
             "SELECT body FROM memory_documents WHERE source_type='document'"
         ).fetchall())
     assert "must never enter" not in indexed_bodies
+
+
+
+def test_local_document_index_preserves_content_past_2000_chars_and_redacts_late_secrets(tmp_path: Path):
+    db_root = tmp_path
+    config_dir = db_root / "config"
+    docs_dir = db_root / "docs"
+    config_dir.mkdir()
+    docs_dir.mkdir()
+    approved = docs_dir / "long-approved.md"
+    prefix = ("ordinary-reference-context " * 150)
+    secret = "late-document-secret-never-store-4bc0e2"
+    tail_marker = "tailretrievalmarker"
+    approved.write_text(
+        "# Long approved document\n\n"
+        + prefix
+        + f" password={secret} {tail_marker}",
+        encoding="utf-8",
+    )
+    (config_dir / "memory_sources.json").write_text(
+        json.dumps({
+            "files": [str(approved)],
+            "directories": [],
+            "limits": {"max_file_bytes": 524288, "max_total_source_bytes": 8388608, "max_files": 200},
+        }),
+        encoding="utf-8",
+    )
+    store = Store(db_root / "os29.db")
+
+    result = search_memory(store, tail_marker, source_types=["document"])
+    assert result["result_count"] == 1
+    assert result["results"][0]["source_ref"] == str(approved.resolve())
+
+    with store._connect() as conn:
+        rows = conn.execute(
+            "SELECT title, body, metadata_json FROM memory_documents WHERE source_type='document'"
+        ).fetchall()
+    indexed_text = json.dumps([dict(row) for row in rows], ensure_ascii=True)
+    assert tail_marker in indexed_text
+    assert secret not in indexed_text

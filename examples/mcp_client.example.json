@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "os29-local": {
+      "command": "python",
+      "args": ["-m", "os29.mcp_stdio"],
+      "env": {
+        "OS29_DB_PATH": "<local-path>/os29.db",
+        "OS29_SCOPE_PATH": "<local-path>/scope.json"
+      }
+    }
+  }
+}
