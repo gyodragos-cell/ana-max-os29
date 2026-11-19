@@ -42,7 +42,7 @@ test("homepage navigation points to real sections and portfolio pages", async ({
   expect(pageErrors).toEqual([]);
 });
 
-test("the three portfolio pages load without uncaught JavaScript errors", async ({ page }) => {
+test("the four portfolio pages load without uncaught JavaScript errors", async ({ page }) => {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
@@ -128,6 +128,7 @@ test("verified OS29 Core v0.1.0 is visible from the home page", async ({ page })
 test("Core release has the exact published links, install command and no private data", async ({ page }) => {
   await page.goto("/core.html");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("keeps the work moving.");
+  await expect(page.locator(".brand .mark")).toHaveCSS("font-size", "20px");
   await expect(page.getByRole("link", { name: /Get v0\.1\.0/i })).toHaveAttribute(
     "href",
     "https://github.com/gyodragos-cell/ana-max-os29-core/releases/tag/v0.1.0"
