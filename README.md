@@ -9,6 +9,28 @@ This repository is the clean OS29 source tree. It does not include the historica
 [![OS29 local baseline](https://img.shields.io/badge/OS29%20local%20baseline-37%20passed-2e8b57.svg)](docs/VERIFICATION.md)
 [![Portfolio](https://img.shields.io/badge/Portfolio-GitHub%20Pages-5468ff.svg)](https://gyodragos-cell.github.io/ana-max-os29/)
 
+## Latest verified OS29 Core: see the difference
+
+**The portable OS29 Core now has a reproducible before/after memory demo.**
+The historical metrics farther down this README describe an earlier snapshot
+of this separate portfolio repository; they are not the current Core test count.
+
+| Reproducible public demonstration | Earlier behavior | Verified OS29 Core |
+|---|---|---|
+| Legacy trace JSON missing embedded event ID | **0** entries eligible for indexing | **1** entry retrieved using the SQLite primary key |
+| Stored original trace JSON | Not recovered by retrieval | **Unchanged** |
+| Automated public release checks | Historical portfolio snapshot | **101 tests passed** locally; Windows, Ubuntu and Gitleaks GitHub CI **PASS** |
+
+**[Explore the current Core source](https://github.com/gyodragos-cell/ana-max-os29-core)** ·
+**[See the before/after walkthrough](https://github.com/gyodragos-cell/ana-max-os29-core/blob/main/docs/SEE_THE_DIFFERENCE.md)** ·
+**[Run the actual example](https://github.com/gyodragos-cell/ana-max-os29-core/blob/main/examples/see_the_difference.py)**
+
+The Core documentation also reports bounded **private local research** comparing
+FTS5 and multilingual semantic retrieval. Those sample measurements are
+**not a publicly reproducible benchmark or a shipped semantic-search feature**.
+The current Core runtime still uses lexical FTS5/BM25. No user data,
+model weights or operator databases are published.
+
 ## What is included
 
 - **Trace contract:** normalized events with stable IDs, parent lineage, timestamps and explicit outcomes.
