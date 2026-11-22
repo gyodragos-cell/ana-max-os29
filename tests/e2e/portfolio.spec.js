@@ -11,7 +11,7 @@ const portfolioSections = [
   "projects"
 ];
 
-const pageRoutes = ["/", "/live.html", "/cv.html", "/core.html"];
+const pageRoutes = ["/", "/live.html", "/cv.html", "/core.html", "/start-here.html"];
 const viewportWidths = [320, 375, 390, 768, 1024, 1365];
 
 test("homepage navigation points to real sections and portfolio pages", async ({ page }) => {
@@ -22,8 +22,8 @@ test("homepage navigation points to real sections and portfolio pages", async ({
   expect(response?.status()).toBe(200);
   await expect(page).toHaveTitle(/ANA MAX OS29/);
   const mainHeading = page.getByRole("heading", { level: 1 });
-  await expect(mainHeading).toContainText("Build local tools.");
-  await expect(mainHeading).toContainText("Keep evidence.");
+  await expect(mainHeading).toContainText("Don't start over.");
+  await expect(mainHeading).toContainText("Keep the proof.");
 
   for (const id of portfolioSections) {
     await expect(page.locator("#" + id), "missing section #" + id).toHaveCount(1);
@@ -37,6 +37,7 @@ test("homepage navigation points to real sections and portfolio pages", async ({
     await expect(page.locator(href), "broken in-page link " + href).toHaveCount(1);
   }
 
+  await expect(page.locator('a[href="./start-here.html"]').first()).toBeVisible();
   await expect(page.locator('a[href="./live.html"]').first()).toBeVisible();
   await expect(page.locator('a[href="./cv.html"]').first()).toBeVisible();
   expect(pageErrors).toEqual([]);
