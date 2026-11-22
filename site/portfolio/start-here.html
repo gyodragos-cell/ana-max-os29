@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101720">
+<title>OS29 explained simply | AI agents that remember the work</title>
+<meta name="description" content="No jargon: see in 60 seconds how OS29 helps AI assistants continue unfinished work, keep evidence, and avoid repeating the same investigation. Interactive illustration, no installation.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="What if your AI didn't forget the work? | OS29">
+<meta property="og:description" content="One AI starts a task. Another continues from the evidence, not from zero. See a clear interactive story and the real limitations.">
+<meta property="og:url" content="https://gyodragos-cell.github.io/ana-max-os29/start-here.html">
+<meta name="twitter:card" content="summary">
+<style>
+:root{color-scheme:dark;--bg:#101720;--card:#1a2733;--edge:#344757;--txt:#f4f6f8;--muted:#becbd5;--accent:#eac090;--good:#78e0b6;--bad:#f1a7a7}
+*,*::before,*::after{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse 90% 50% at 76% 0%,#3a2b25 0%,#19232c 50%,var(--bg) 85%);color:var(--txt);font:400 17px/1.65 system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+a{color:var(--accent);text-underline-offset:4px}a:hover{color:#f5d5ad}
+button{font:inherit;cursor:pointer}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--good);outline-offset:3px}
+.skip{position:absolute;top:-100px;left:16px;background:var(--accent);color:#171717;padding:9px 14px;z-index:8}.skip:focus{top:8px}
+.shell{width:min(100% - 36px,1060px);margin:auto}.top{border-bottom:1px solid var(--edge);background:#101820d9}
+.top-inner{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 0;flex-wrap:wrap}
+.brand{font-size:16px;font-weight:800;text-decoration:none;color:#fff;letter-spacing:.05em}.brand span{color:var(--accent)}.nav{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:14px}
+.lang-btn{background:#293746;border:1px solid #617083;color:#fff;border-radius:10px;padding:8px 11px;font-weight:700}.lang-btn[aria-pressed="true"]{background:var(--accent);color:#13181e;border-color:var(--accent)}
+.hero{padding:70px 0 45px}.eyebrow{font:750 12px/1.6 system-ui;letter-spacing:.18em;color:var(--accent);text-transform:uppercase}
+h1{max-width:870px;font-size:clamp(2.2rem,6.5vw,4.4rem);line-height:1.08;letter-spacing:-.04em;margin:17px 0 20px}
+h1 em{font-style:normal;color:var(--accent)}h2{font-size:clamp(1.45rem,3.5vw,2rem);line-height:1.25;letter-spacing:-.025em;margin:0 0 14px}
+p{margin:0 0 15px}.lead{max-width:760px;font-size:clamp(1.06rem,2.2vw,1.3rem);color:#d1dce3}
+.strap{border-left:3px solid var(--good);padding:10px 15px;background:#223c39a9;border-radius:0 8px 8px 0;max-width:790px;font-size:.96rem}
+.cta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:24px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:11px 16px;border-radius:10px;text-decoration:none;font-size:15px;font-weight:750;border:1px solid #a87f57;background:#6d492e;color:#fff}.btn:hover{background:#875937;color:white}.btn.alt{background:transparent;border-color:#728495;color:#fff}.btn.alt:hover{background:#273443}
+.note{font-size:13px;color:var(--muted);margin-top:13px}.section{padding:40px 0;border-top:1px solid var(--edge)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.panel{background:linear-gradient(155deg,#23313e,#17232e);border:1px solid #43576b;border-radius:15px;padding:23px;min-width:0}
+.panel .mark{display:inline-block;color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:9px}.panel h3{margin:4px 0 9px;font-size:19px;line-height:1.3}.panel p{color:var(--muted);font-size:15px}.panel strong{color:#fff}
+.story{border:1px solid #557080;border-radius:18px;background:linear-gradient(135deg,#1e3040,#14212d);padding:26px;margin:19px 0 16px}
+.progress{font-size:13px;color:var(--accent);font-weight:800;letter-spacing:.08em}.bar{height:7px;border-radius:999px;background:#354555;overflow:hidden;margin:12px 0 24px}.bar-fill{width:33.333%;height:100%;background:var(--good);transition:width .2s ease-out}
+.story h3{font-size:clamp(1.35rem,3vw,1.85rem);margin:0 0 12px}.story p{max-width:790px;color:#d1dee5;font-size:17px}
+.story .quote{margin:14px 0;padding:14px 17px;border-radius:10px;background:#0f1d27;border:1px solid #536779;color:#e4eefa;font-size:15px;overflow-wrap:anywhere}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}.controls button{border:1px solid #63788a;background:#263948;color:white;border-radius:9px;padding:10px 16px;font-size:15px;font-weight:700;min-height:44px}.controls button:hover:not(:disabled){background:#385166}.controls button:disabled{opacity:.45;cursor:not-allowed}.controls button.primary{background:#815331;border-color:#b68861}.controls button.primary:hover:not(:disabled){background:#996440}
+.reality{border-left:4px solid #d3a265;padding:15px 19px;background:#2b261fe0;border-radius:0 12px 12px 0}
+.reality strong{display:block;margin-bottom:6px}.reality p{color:#dbd1c7;font-size:15px;margin:0}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.bad{border-left:4px solid var(--bad)}.good{border-left:4px solid var(--good)}
+.metric{font-size:33px;line-height:1.2;font-weight:800;margin:10px 0}.bad .metric{color:var(--bad)}.good .metric{color:var(--good)}.small{font-size:14px;color:var(--muted)}
+.terms details{border:1px solid var(--edge);border-radius:10px;padding:13px 17px;margin:10px 0;background:#1b2834}.terms summary{font-weight:750;cursor:pointer}.terms details p{color:var(--muted);font-size:15px;margin:8px 0 0}
+.foot{border-top:1px solid var(--edge);padding:28px 0 50px;margin-top:26px;color:var(--muted);font-size:14px}.foot a{white-space:normal}
+@media(max-width:760px){.grid,.two{grid-template-columns:1fr}.hero{padding-top:45px}.section{padding:30px 0}.story{padding:18px}.panel{padding:19px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.bar-fill{transition:none}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="shell top-inner">
+<a class="brand" href="./">ANA MAX <span>OS29</span></a>
+<nav class="nav" aria-label="Main">
+<a href="./" data-i18n="home">Home</a>
+<a href="#how" data-i18n="howNav">How it works</a>
+<a href="#proof" data-i18n="proofNav">Real proof</a>
+<button type="button" class="lang-btn" id="enBtn" aria-pressed="true" lang="en">English</button>
+<button type="button" class="lang-btn" id="roBtn" aria-pressed="false" lang="ro">Română</button>
+</nav>
+</div></header>
+<main class="shell" id="main">
+<section class="hero" aria-labelledby="mainTitle">
+<div class="eyebrow" data-i18n="eyebrow">OS29 · Explained without technical jargon</div>
+<h1 id="mainTitle" data-i18n-html="headline">What if your AI could <em>pick up where it left off?</em></h1>
+<p class="lead" data-i18n="lead">You ask an AI to fix a problem. It investigates for an hour. Then the session ends, or another AI takes over. Do you really want to explain everything again?</p>
+<p class="strap" data-i18n="strap">OS29 is a local notebook for AI agents: what was tried, what worked, what failed, and what should happen next. It is not another AI model.</p>
+<div class="cta">
+<a class="btn" href="#how" data-i18n="tryStory">See the 3-step example</a>
+<a class="btn alt" href="https://github.com/gyodragos-cell/ana-max-os29" target="_blank" rel="noopener noreferrer" data-i18n="seeGitHub">Explore the project on GitHub</a>
+</div>
+<p class="note" data-i18n="noInstall">No login. No install. The example below is an illustration, not a live connection to your computer.</p>
+</section>
+<section class="section" aria-labelledby="problemTitle">
+<h2 id="problemTitle" data-i18n="problemTitle">The problem in plain language</h2>
+<div class="grid">
+<article class="panel"><span class="mark">01</span><h3 data-i18n="problemOneTitle">AI loses the thread</h3><p data-i18n="problemOne">A session ends and your next assistant does not know what was already checked.</p></article>
+<article class="panel"><span class="mark">02</span><h3 data-i18n="problemTwoTitle">Work gets repeated</h3><p data-i18n="problemTwo">The same logs are opened, the same commands are tried, and time is wasted.</p></article>
+<article class="panel"><span class="mark">03</span><h3 data-i18n="problemThreeTitle">Claims are hard to check</h3><p data-i18n="problemThree">“Fixed” means little if no one can show which test actually passed.</p></article>
+</div>
+</section>
+<section class="section" id="how" aria-labelledby="howTitle">
+<h2 id="howTitle" data-i18n="howTitle">Try the story — three clicks, zero jargon</h2>
+<p class="small" data-i18n="illustration">Illustrative walkthrough based on a real local experiment. The page is static and does not run an AI.</p>
+<div class="story">
+<div class="progress" id="stepProgress" aria-live="polite">STEP 1 OF 3</div>
+<div class="bar" role="presentation"><div class="bar-fill" id="progressFill"></div></div>
+<div id="storyStage" role="group" aria-label="Current step" aria-live="polite" aria-atomic="true">
+<h3 id="stepTitle">An AI finds a problem</h3>
+<p id="stepText">It spots a wrong result and records the exact error and tests.</p>
+<p class="quote" id="stepProof">Saved: what failed, the evidence, and the next step.</p>
+</div>
+<div class="controls">
+<button type="button" id="previousStep" disabled>Previous</button>
+<button type="button" class="primary" id="nextStep">Next step</button>
+<button type="button" id="restartStory">Start again</button>
+</div>
+</div>
+</section>
+<section class="section" id="proof" aria-labelledby="proofTitle">
+<h2 id="proofTitle" data-i18n="proofTitle">Did this actually happen?</h2>
+<p data-i18n="proofLead">Yes. In a private local experiment, GPT-6 found a genuine mathematical bug. Qwen 7B independently retrieved the task and generated a partial repair. GPT-6 corrected one expression and ran independent tests. The details below describe that test, not the static illustration above.</p>
+<div class="two">
+<div class="panel bad"><span class="mark" data-i18n="before">BEFORE</span><div class="metric">5 failed</div><p data-i18n="beforeText">Wrong ranking. A score named “cosine” reached an impossible value of 20.</p></div>
+<div class="panel good"><span class="mark" data-i18n="after">AFTER</span><div class="metric">7 passed</div><p data-i18n="afterText">Correct ranking. The full private OS29 regression also passed 433 tests at that checkpoint.</p></div>
+</div>
+<div class="reality">
+<strong data-i18n="honestyTitle">Important: what is demonstrated, and what is not</strong>
+<p data-i18n="honestyBody">Qwen did not repair the bug completely on its own. GPT-6 corrected one expression. This shows how agents can share a task, retain failed attempts, and verify a combined repair. The public demo uses invented data; it does not run two AI models in your browser. Zero bugs and viral success cannot be guaranteed.</p>
+</div>
+<div class="cta">
+<a class="btn" href="https://github.com/gyodragos-cell/ana-max-os29-core/blob/main/docs/TWO_AGENTS_REAL_BUG_REPAIR.md" target="_blank" rel="noopener noreferrer" data-i18n="readEvidence">Read how the bug was fixed</a>
+<a class="btn alt" href="https://github.com/gyodragos-cell/ana-max-os29-core/blob/main/examples/cosine_red_green_demo.py" target="_blank" rel="noopener noreferrer" data-i18n="seeExample">See the runnable example</a>
+</div>
+</section>
+<section class="section terms" aria-labelledby="glossaryTitle">
+<h2 id="glossaryTitle" data-i18n="glossaryTitle">Three words, translated into everyday language</h2>
+<details><summary data-i18n="termAgent">AI agent</summary><p data-i18n="agentExplain">An AI assistant that can use tools to carry out steps, not just answer in a chat.</p></details>
+<details><summary data-i18n="termWork">Work Unit</summary><p data-i18n="workExplain">A task card containing the goal, progress, files, evidence and the next action.</p></details>
+<details><summary data-i18n="termProof">Receipt / evidence</summary><p data-i18n="proofExplain">A record of what ran and the actual test result, so someone else can check it.</p></details>
+</section>
+<section class="section">
+<h2 data-i18n="supportTitle">Want to help make it better?</h2>
+<p data-i18n="supportBody">The project is open for feedback. Try the public example, report a reproducible issue, or leave a GitHub star if you find the idea useful. Those are real signals — no paid or fake likes.</p>
+<div class="cta">
+<a class="btn" href="https://github.com/gyodragos-cell/ana-max-os29" target="_blank" rel="noopener noreferrer" data-i18n="starProject">View / star on GitHub</a>
+<a class="btn alt" href="https://github.com/gyodragos-cell/ana-max-os29/issues" target="_blank" rel="noopener noreferrer" data-i18n="sendFeedback">Report a bug or share feedback</a>
+<button class="btn alt" type="button" id="copyLink" data-i18n="copyLink">Copy this page link</button>
+</div>
+<p class="note" role="status" id="shareStatus" aria-live="polite"></p>
+</section>
+</main>
+<footer class="foot"><div class="shell"><span data-i18n="footer">A public explanation of OS29. No access to visitors’ files, AI sessions or local devices.</span> <a href="./" data-i18n="backHome">Back to portfolio</a></div></footer>
+<script>
+"use strict";
+(function () {
+  const content = {
+    en: {
+      home:"Home",howNav:"How it works",proofNav:"Real proof",eyebrow:"OS29 · Explained without technical jargon",
+      headline:"What if your AI could <em>pick up where it left off?</em>",
+      lead:"You ask an AI to fix a problem. It investigates for an hour. Then the session ends, or another AI takes over. Do you really want to explain everything again?",
+      strap:"OS29 is a local notebook for AI agents: what was tried, what worked, what failed, and what should happen next. It is not another AI model.",
+      tryStory:"See the 3-step example",seeGitHub:"Explore the project on GitHub",noInstall:"No login. No install. The example below is an illustration, not a live connection to your computer.",
+      problemTitle:"The problem in plain language",
+      problemOneTitle:"AI loses the thread",problemOne:"A session ends and your next assistant does not know what was already checked.",
+      problemTwoTitle:"Work gets repeated",problemTwo:"The same logs are opened, the same commands are tried, and time is wasted.",
+      problemThreeTitle:"Claims are hard to check",problemThree:"“Fixed” means little if no one can show which test actually passed.",
+      howTitle:"Try the story — three clicks, zero jargon",illustration:"Illustrative walkthrough based on a real local experiment. The page is static and does not run an AI.",
+      proofTitle:"Did this actually happen?",proofLead:"Yes. In a private local experiment, GPT-6 found a genuine mathematical bug. Qwen 7B independently retrieved the task and generated a partial repair. GPT-6 corrected one expression and ran independent tests. The details below describe that test, not the static illustration above.",
+      before:"BEFORE",beforeText:"Wrong ranking. A score named “cosine” reached an impossible value of 20.",
+      after:"AFTER",afterText:"Correct ranking. The full private OS29 regression also passed 433 tests at that checkpoint.",
+      honestyTitle:"Important: what is demonstrated, and what is not",
+      honestyBody:"Qwen did not repair the bug completely on its own. GPT-6 corrected one expression. This shows how agents can share a task, retain failed attempts, and verify a combined repair. The public demo uses invented data; it does not run two AI models in your browser. Zero bugs and viral success cannot be guaranteed.",
+      readEvidence:"Read how the bug was fixed",seeExample:"See the runnable example",
+      glossaryTitle:"Three words, translated into everyday language",
+      termAgent:"AI agent",agentExplain:"An AI assistant that can use tools to carry out steps, not just answer in a chat.",
+      termWork:"Work Unit",workExplain:"A task card containing the goal, progress, files, evidence and the next action.",
+      termProof:"Receipt / evidence",proofExplain:"A record of what ran and the actual test result, so someone else can check it.",
+      supportTitle:"Want to help make it better?",
+      supportBody:"The project is open for feedback. Try the public example, report a reproducible issue, or leave a GitHub star if you find the idea useful. Those are real signals — no paid or fake likes.",
+      starProject:"View / star on GitHub",sendFeedback:"Report a bug or share feedback",copyLink:"Copy this page link",
+      footer:"A public explanation of OS29. No access to visitors’ files, AI sessions or local devices.",
+      backHome:"Back to portfolio",previous:"Previous",next:"Next step",restart:"Start again",finished:"Story complete",stepLabel:"STEP {n} OF 3",
+      copied:"Link copied.",copyFailed:"Copy was unavailable. Copy the address from your browser.",
+      steps:[
+        {title:"Agent A finds a problem",text:"An AI assistant notices that a search result is wrong. It writes down the exact test that failed, so nobody needs to guess later.",proof:"Saved in OS29: error + test + file + next action."},
+        {title:"Agent B picks up the same work",text:"A different AI gets only the task ID. OS29 supplies the saved context. The second AI tries a fix, but its first attempts fail the tests — and those failures stay recorded.",proof:"Recovered from OS29: what was tried, what failed, and what remains."},
+        {title:"A verified repair, not just a promise",text:"The two agents contribute to a correction. The reviewer checks the result against the original failure and stores the passing test evidence. A failure never counts as a pass.",proof:"Final result: 7 focused tests passed; reviewer-approved combined fix."}
+      ]
+    },
+    ro: {
+      home:"Acasă",howNav:"Cum funcționează",proofNav:"Dovezi reale",eyebrow:"OS29 · Explicat pe înțelesul tuturor",
+      headline:"Cum ar fi dacă AI-ul tău ar putea <em>continua de unde a rămas?</em>",
+      lead:"Ceri unui AI să repare o problemă. Investighează o oră. Apoi conversația se încheie sau preia alt AI. De ce să explici totul de la zero?",
+      strap:"OS29 este un caiet de lucru local pentru agenții AI: ce au încercat, ce a mers, ce a eșuat și ce urmează. Nu este încă un model AI.",
+      tryStory:"Vezi exemplul în 3 pași",seeGitHub:"Vezi proiectul pe GitHub",noInstall:"Fără cont și fără instalare. Exemplul de mai jos este o ilustrație, nu o conexiune la calculatorul tău.",
+      problemTitle:"Problema explicată simplu",
+      problemOneTitle:"AI-ul pierde firul",problemOne:"Se termină sesiunea, iar următorul asistent nu știe ce ai verificat deja.",
+      problemTwoTitle:"Munca se repetă",problemTwo:"Aceleași loguri, aceleași comenzi, aceleași încercări. Pierdem timp.",
+      problemThreeTitle:"Promisiunile nu sunt dovezi",problemThree:"«Reparat» înseamnă prea puțin dacă nimeni nu poate arăta ce test a trecut.",
+      howTitle:"Încearcă povestea — trei pași, fără jargon",illustration:"Exemplu ilustrativ bazat pe un experiment local real. Pagina este statică și nu rulează AI.",
+      proofTitle:"S-a întâmplat asta cu adevărat?",proofLead:"Da. În laboratorul local privat, GPT-6 a descoperit un bug matematic real. Qwen 7B a recuperat independent misiunea și a generat o reparație parțială. GPT-6 a corectat o expresie și a rulat verificări independente. Rezultatele de mai jos descriu acel experiment, nu animația statică de mai sus.",
+      before:"ÎNAINTE",beforeText:"Clasament greșit. Un scor numit «cosinus» ajungea la valoarea imposibilă 20.",
+      after:"DUPĂ",afterText:"Clasament corect. Regresia OS29 din acel moment a trecut și 433 de teste.",
+      honestyTitle:"Important: ce am demonstrat și ce nu",
+      honestyBody:"Qwen nu a reparat singur integral bugul. GPT-6 a corectat o expresie. Am demonstrat că agenții pot prelua aceeași lucrare, păstra eșecurile și verifica reparația combinată. Demo-ul public folosește date inventate; nu rulează doi AI în browser. Nu putem promite zero buguri sau viralizare garantată.",
+      readEvidence:"Citește cum am reparat bugul",seeExample:"Vezi exemplul care se poate rula",
+      glossaryTitle:"Trei termeni tehnici, explicați pe românește",
+      termAgent:"Agent AI",agentExplain:"Un asistent AI care poate folosi instrumente și executa pași, nu doar răspunde în chat.",
+      termWork:"Work Unit",workExplain:"Fișa unei lucrări: obiectiv, progres, fișiere, dovezi și următorul pas.",
+      termProof:"Receipt / dovadă",proofExplain:"Înregistrarea comenzii și a rezultatului testului, pentru ca altcineva să poată verifica.",
+      supportTitle:"Vrei să ne ajuți să-l facem mai bun?",
+      supportBody:"Proiectul primește feedback. Poți încerca exemplul public, raporta un bug reproductibil sau acorda o stea pe GitHub dacă îți place ideea. Aprecieri reale, nu cumpărate.",
+      starProject:"Vezi / acordă o stea pe GitHub",sendFeedback:"Raportează un bug sau lasă feedback",copyLink:"Copiază linkul paginii",
+      footer:"Explicație publică a OS29. Nu accesăm fișierele, sesiunile AI sau dispozitivele vizitatorilor.",
+      backHome:"Înapoi la portofoliu",previous:"Înapoi",next:"Pasul următor",restart:"De la început",finished:"Poveste încheiată",stepLabel:"PASUL {n} DIN 3",
+      copied:"Link copiat.",copyFailed:"Nu am putut copia automat. Copiază adresa din browser.",
+      steps:[
+        {title:"Agentul A descoperă o problemă",text:"Un asistent AI găsește un rezultat greșit și notează testul care a eșuat. Nimeni nu trebuie să ghicească mai târziu.",proof:"Salvat în OS29: eroare + test + fișier + pasul următor."},
+        {title:"Agentul B continuă aceeași lucrare",text:"Alt AI primește doar ID-ul lucrării. OS29 îi arată ce s-a făcut. Încearcă să repare, dar primele soluții pică testele — și eșecurile rămân înregistrate.",proof:"Recuperat din OS29: ce s-a încercat, ce a eșuat și ce a rămas."},
+        {title:"O reparație verificată, nu doar promisă",text:"Cei doi contribuie la o corecție. Verificatorul compară rezultatul cu eroarea inițială și salvează testele trecute. Un eșec nu devine niciodată PASS.",proof:"Rezultat: 7 teste țintite trecute; reparație combinată și verificată."}
+      ]
+    }
+  };
+  let language = "en";
+  let position = 0;
+  const byId = (id) => document.getElementById(id);
+  function drawStep() {
+    const msg = content[language];
+    const item = msg.steps[position];
+    byId("stepProgress").textContent = msg.stepLabel.replace("{n}", String(position + 1));
+    byId("progressFill").style.width = String((position + 1) * 100 / 3) + "%";
+    byId("stepTitle").textContent = item.title;
+    byId("stepText").textContent = item.text;
+    byId("stepProof").textContent = item.proof;
+    byId("previousStep").textContent = msg.previous;
+    byId("nextStep").textContent = position === 2 ? msg.finished : msg.next;
+    byId("restartStory").textContent = msg.restart;
+    byId("previousStep").disabled = position === 0;
+    byId("nextStep").disabled = position === 2;
+  }
+  function changeLanguage(next) {
+    if (next !== "en" && next !== "ro") return;
+    language = next;
+    document.documentElement.lang = next;
+    for (const element of document.querySelectorAll("[data-i18n]")) {
+      const key = element.getAttribute("data-i18n");
+      if (Object.hasOwn(content[next], key)) element.textContent = content[next][key];
+    }
+    for (const element of document.querySelectorAll("[data-i18n-html]")) {
+      const key = element.getAttribute("data-i18n-html");
+      if (key === "headline") element.innerHTML = content[next].headline;
+    }
+    byId("enBtn").setAttribute("aria-pressed", String(next === "en"));
+    byId("roBtn").setAttribute("aria-pressed", String(next === "ro"));
+    byId("shareStatus").textContent = "";
+    drawStep();
+  }
+  byId("enBtn").addEventListener("click", () => changeLanguage("en"));
+  byId("roBtn").addEventListener("click", () => changeLanguage("ro"));
+  byId("nextStep").addEventListener("click", () => {position = Math.min(2, position + 1); drawStep();});
+  byId("previousStep").addEventListener("click", () => {position = Math.max(0, position - 1); drawStep();});
+  byId("restartStory").addEventListener("click", () => {position = 0; drawStep();});
+  byId("copyLink").addEventListener("click", async () => {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
+      await navigator.clipboard.writeText(location.href);
+      byId("shareStatus").textContent = content[language].copied;
+    } catch (_) {
+      byId("shareStatus").textContent = content[language].copyFailed;
+    }
+  });
+  changeLanguage("en");
+})();
+</script>
+</body>
+</html>
