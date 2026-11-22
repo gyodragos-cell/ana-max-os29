@@ -1,4 +1,26 @@
 # ANA MAX OS29
+## For everyone: what OS29 actually does
+
+**Imagine an AI spends an hour investigating a problem, but the conversation ends.**
+A second AI should be able to see **what happened, what failed, what worked, and
+what still needs fixing** — without starting the investigation from scratch.
+
+That is the purpose of OS29: **a local notebook for AI work, with proof**.
+It is not another chatbot or a guarantee of bug-free software.
+
+**[See how it works in 60 seconds — English or Romanian](https://gyodragos-cell.github.io/ana-max-os29/start-here.html)**
+
+In a real private lab test, Qwen 7B produced a *partial* code repair and GPT-6
+corrected one expression. The combined fix passed regression checks. The
+public site explains that distinction instead of claiming perfect autonomy.
+
+**Want to help?** [Try the public reproducible example](https://github.com/gyodragos-cell/ana-max-os29-core/blob/main/examples/cosine_red_green_demo.py),
+[report a bug](https://github.com/gyodragos-cell/ana-max-os29/issues), or
+[leave a GitHub star](https://github.com/gyodragos-cell/ana-max-os29)
+if you find the idea useful.
+
+---
+
 ## Operational Intelligence · Local-First · Evidence-Driven
 
 OS29 is a local-first operational-intelligence layer for traceable diagnostics, bounded tools and evidence-linked memory. It is designed to make system observations inspectable and to keep the difference between **declared**, **configured**, **running**, **tested**, **degraded** and **unknown** capabilities explicit.
@@ -19,7 +41,7 @@ of this separate portfolio repository; they are not the current Core test count.
 |---|---|---|
 | Legacy trace JSON missing embedded event ID | **0** entries eligible for indexing | **1** entry retrieved using the SQLite primary key |
 | Stored original trace JSON | Not recovered by retrieval | **Unchanged** |
-| Automated public release checks | Historical portfolio snapshot | **101 tests passed** locally; Windows, Ubuntu and Gitleaks GitHub CI **PASS** |
+| Automated public release checks | Historical portfolio snapshot | **112 tests passed** locally; Windows, Ubuntu and Gitleaks GitHub CI **PASS** |
 
 **[Explore the current Core source](https://github.com/gyodragos-cell/ana-max-os29-core)** ·
 **[See the before/after walkthrough](https://github.com/gyodragos-cell/ana-max-os29-core/blob/main/docs/SEE_THE_DIFFERENCE.md)** ·
