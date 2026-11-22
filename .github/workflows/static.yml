@@ -29,7 +29,8 @@ jobs:
         run: |
           rm -rf _site
           mkdir -p _site
-          cp site/portfolio/index.html site/portfolio/live.html site/portfolio/cv.html site/portfolio/core.html _site/
+          cp site/portfolio/index.html site/portfolio/live.html site/portfolio/cv.html site/portfolio/core.html site/portfolio/start-here.html _site/
+          test -s _site/start-here.html
       - name: Upload approved site artifact
         uses: actions/upload-pages-artifact@v3
         with:
