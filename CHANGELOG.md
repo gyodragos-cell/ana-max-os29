@@ -7,3 +7,5 @@
 - Added separate OS29 pytest/compile/Frida-JS CI and browser Playwright E2E workflows.
 - Excluded runtime SQLite databases, logs, artifacts, browser profiles, caches, local target IDs, private memory sources and machine-specific MCP configuration.
 - Preserved a recoverable branch of the prior mixed repository: `archive/pre-os29-clean-rebuild-2026-10-20`.
+
+- GitHub Pages artifacts use a run- and attempt-specific name shared by the upload and deploy actions. Only the main branch can deploy the portfolio.
