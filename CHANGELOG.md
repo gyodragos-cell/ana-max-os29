@@ -9,3 +9,5 @@
 - Preserved a recoverable branch of the prior mixed repository: `archive/pre-os29-clean-rebuild-2026-10-20`.
 
 - GitHub Pages artifacts use a run- and attempt-specific name shared by the upload and deploy actions. Only the main branch can deploy the portfolio.
+
+- Pages deployment waits for the exact uploaded artifact to be visible, with a bounded timeout and duplicate detection.
