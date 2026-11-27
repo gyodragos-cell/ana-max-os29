@@ -2,9 +2,9 @@ name: OS29 Core privacy and tests
 
 on:
   push:
-    branches: [main, "release/**"]
+    branches: [main, "release/**", "fix/release-privacy-*"]
   pull_request:
-    branches: [main]
+    branches: [main, "release/**"]
 
 permissions:
   contents: read

@@ -35,7 +35,7 @@
 
   /* HERO */
   .hero { position: relative; min-height: 92vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-  .hero-bg { position: absolute; inset: 0; background: url('assets/tower-awakens.png') center/cover no-repeat; opacity: .22; }
+  .hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at center, #225577, transparent 70%); opacity: .22; }
   .hero-glow { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); width: 600px; height: 400px; background: radial-gradient(ellipse, var(--hero-glow) 0%, transparent 70%); pointer-events: none; }
   .hero-content { position: relative; text-align: center; padding: 2rem 1.5rem; max-width: 820px; }
   .hero-badge { display: inline-block; background: rgba(88,166,255,.12); border: 1px solid rgba(88,166,255,.3); color: var(--accent); font-size: 0.75rem; font-weight: 600; padding: .3rem .9rem; border-radius: 999px; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 1.5rem; }
@@ -240,13 +240,13 @@
 <!-- LIVE SYSTEM -->
 <section id="live" style="background: var(--surface);">
   <div class="section-inner">
-    <div class="section-tag">Running Live</div>
-    <h2>See it in production</h2>
-    <p class="section-lead">Real screenshots from PC1313 &mdash; OS29 running live with ANA MAX, 4-terminal workspace and Tower Control V2 dashboard.</p>
+    <div class="section-tag">Illustrated workflows</div>
+    <h2>See how it works</h2>
+    <p class="section-lead">Illustrative diagrams of the local OS29 workflow. These are synthetic examples, not screenshots or live telemetry.</p>
 
     <div class="screenshot-block">
       <div class="screenshot-wrap">
-        <img src="assets/pc-terminal.png" alt="4-pane terminal showing ANA MAX and OS29 running live" loading="lazy">
+        <div class="card" style="padding:2rem;min-height:150px;display:grid;align-content:center;gap:1rem"><span class="tag">ILLUSTRATIVE DEMO</span><h3>Four terminal roles</h3><p>MCP STDIO | Store | Evidence | Log stream</p></div>
       </div>
       <div class="screenshot-text">
         <span class="tag">DEMO SIMULATION</span>
@@ -260,7 +260,7 @@
 
     <div class="screenshot-block reverse">
       <div class="screenshot-wrap">
-        <img src="assets/tower-dashboard.png" alt="Tower Control V2 dashboard showing OS28/OS29 agent coordination" loading="lazy">
+        <div class="card" style="padding:2rem;min-height:150px;display:grid;align-content:center;gap:1rem"><span class="tag">ILLUSTRATIVE DEMO</span><h3>Work Unit lifecycle</h3><p>Create &gt; Checkpoint &gt; Handoff &gt; Verify</p></div>
       </div>
       <div class="screenshot-text">
         <span class="tag yellow">DEMO SIMULATION</span>
@@ -274,7 +274,7 @@
 
     <div class="screenshot-block">
       <div class="screenshot-wrap">
-        <img src="assets/readme-mcp.png" alt="GitHub repo showing MCP STDIO integration section" loading="lazy">
+        <div class="card" style="padding:2rem;min-height:150px;display:grid;align-content:center;gap:1rem"><span class="tag">ILLUSTRATIVE DEMO</span><h3>MCP request flow</h3><p>Client &gt; JSON-RPC &gt; OS29 tool &gt; Response</p></div>
       </div>
       <div class="screenshot-text">
         <h3>MCP STDIO Integration</h3>
@@ -429,12 +429,12 @@ result = store.verify_work_unit(wu.id)
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start;margin-top:2rem">
       <div>
-        <img src="assets/team.png" alt="Justice League of AI agents artwork" loading="lazy" style="width:100%;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)">
-        <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; Agent team artwork</p>
+        <div class="card" style="padding:2rem;min-height:150px;display:grid;align-content:center;gap:1rem"><span class="tag">ILLUSTRATIVE DEMO</span><h3>Shared memory</h3><p>Agent A &gt; OS29 evidence &lt; Agent B</p></div>
+        <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; Agent collaboration diagram</p>
       </div>
       <div>
-        <img src="assets/batman-os29.png" alt="Batman operator OS29 artwork" loading="lazy" style="width:100%;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)">
-        <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; OS29 Operator artwork</p>
+        <div class="card" style="padding:2rem;min-height:150px;display:grid;align-content:center;gap:1rem"><span class="tag">ILLUSTRATIVE DEMO</span><h3>Operator review</h3><p>Inspect &gt; Reproduce &gt; Accept or investigate</p></div>
+        <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; Operator review diagram</p>
         <div class="card" style="margin-top:1.25rem">
           <div class="card-icon">&#x1F3F0;</div>
           <h3>Tower Control V2</h3>
@@ -444,7 +444,7 @@ result = store.verify_work_unit(wu.id)
     </div>
 
     <div style="margin-top:3rem">
-      <img src="assets/tower-control.png" alt="Tower of Control OS29 architecture art" loading="lazy" style="width:100%;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)">
+      <div class="card" style="padding:2rem;min-height:150px;display:grid;align-content:center;gap:1rem"><span class="tag">ILLUSTRATIVE DEMO</span><h3>Control architecture</h3><p>Agents &gt; MCP &gt; Local OS29 store &gt; Evidence</p></div>
       <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; Tower Control architecture visualization</p>
     </div>
   </div>
@@ -458,7 +458,7 @@ result = store.verify_work_unit(wu.id)
     <p class="section-lead">AI agents crash. Context windows reset. Without OS29, the work unit is lost. With it, the agent resumes exactly where it stopped &mdash; hash verified.</p>
     <div class="screenshot-block">
       <div class="screenshot-wrap">
-        <img src="assets/broken-signal.png" alt="The Broken Signal &mdash; OS29 crash recovery art" loading="lazy">
+        <div class="card" style="padding:2rem;min-height:150px;display:grid;align-content:center;gap:1rem"><span class="tag">ILLUSTRATIVE DEMO</span><h3>Crash recovery</h3><p>Checkpoint &gt; Interrupted process &gt; Resume &gt; Verify</p></div>
       </div>
       <div class="screenshot-text">
         <h3>Crash Recovery by Design</h3>
