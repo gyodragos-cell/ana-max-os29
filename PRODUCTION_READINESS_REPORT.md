@@ -25,6 +25,7 @@ python -m mypy os29
 python -m pytest -q --cov=os29 --cov-fail-under=90
 python -m compileall -q os29 integrations examples scripts tests
 python scripts/offline_smoke.py
+python scripts/verify_wheel.py
 python examples/01_quickstart_work_unit.py
 python examples/02_crash_recovery_chaos.py
 python examples/03_mcp_server_client_e2e.py

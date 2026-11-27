@@ -22,7 +22,7 @@ DEFAULT_DB = Path(
     os.environ.get("OS29_DB_PATH", str(Path.home() / ".os29" / "os29.db"))
 ).expanduser()
 DEFAULT_SCOPE = Path(
-    os.environ.get("OS29_SCOPE_PATH", str(ROOT / "config" / "lab_scope.json"))
+    os.environ.get("OS29_SCOPE_PATH", str(Path(__file__).resolve().with_name("lab_scope.json")))
 ).expanduser()
 
 

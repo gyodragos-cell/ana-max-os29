@@ -1,0 +1,30 @@
+{
+  "schema_version": "os29.scope.v1",
+  "mode": "local",
+  "default_action": "deny",
+  "approved_hosts": [
+    "127.0.0.1",
+    "localhost",
+    "::1"
+  ],
+  "approved_networks": [
+    "127.0.0.1/32",
+    "::1/128"
+  ],
+  "approved_ports": [7777],
+  "approved_device_ids": [],
+  "approved_process_names": [],
+  "capture": {
+    "enabled": false,
+    "record_request_bodies": false,
+    "record_response_bodies": false,
+    "record_header_values": false,
+    "store_full_urls": false,
+    "max_event_bytes": 1048576
+  },
+  "privacy": {
+    "redact_sensitive_values": true,
+    "max_text_length": 2000,
+    "retention_days": 30
+  }
+}

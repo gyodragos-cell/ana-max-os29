@@ -51,5 +51,7 @@ jobs:
           python examples/03_mcp_server_client_e2e.py
           python examples/04_custom_retriever_hybrid.py
           python examples/05_multiagent_handoff_demo.py
+      - name: Standalone wheel installation and scope contract
+        run: python scripts/verify_wheel.py
       - name: Whitespace check
         run: git diff --check HEAD^ HEAD
