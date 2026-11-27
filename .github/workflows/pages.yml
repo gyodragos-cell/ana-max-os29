@@ -25,6 +25,12 @@ jobs:
         run: |
           python scripts/privacy_gate.py
           python -m pytest -q tests/test_release_site_contract.py
+      - name: Install Chromium browser test
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Real browser preview verification
+        run: python scripts/verify_release_browser.py
       - uses: actions/upload-artifact@v4
         with:
           name: release-site-preview-${{ github.run_id }}-${{ github.run_attempt }}

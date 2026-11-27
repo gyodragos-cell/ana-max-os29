@@ -134,8 +134,8 @@
       <a class="btn-ghost" href="https://github.com/gyodragos-cell/ana-max-os29">GitHub Repository</a>
     </div>
     <div class="install-box">
-      <code>python -m pip install -e ".[test]"</code>
-      <button class="copy-btn" onclick="navigator.clipboard.writeText('python -m pip install -e \".[test]\"');this.textContent='Copied'">Copy</button>
+      <code id="install-command">python -m pip install -e ".[test]"</code>
+      <button type="button" class="copy-btn" id="copy-install">Copy</button><span id="copy-status" role="status" aria-live="polite"></span>
     </div>
   </div>
 </section>
@@ -440,6 +440,17 @@ function showStep(idx, btn) {
   document.getElementById('inspector-out').textContent = JSON.stringify(STEPS[idx], null, 2);
 }
 showStep(0, document.querySelector('.tab-btn'));
+const copyInstall = document.getElementById('copy-install');
+const copyStatus = document.getElementById('copy-status');
+copyInstall.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(document.getElementById('install-command').textContent);
+    copyStatus.textContent = 'Copied';
+  } catch {
+    copyStatus.textContent = 'Copy unavailable. Select and copy the command manually.';
+  }
+});
+
 </script>
 </body>
 </html>
