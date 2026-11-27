@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -40,6 +41,12 @@ jobs:
         with:
           path: "_site"
           name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Wait for the exact uploaded artifact
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGES_ARTIFACT_NAME: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+        run: python3 scripts/wait_pages_artifact.py
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
