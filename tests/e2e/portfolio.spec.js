@@ -171,3 +171,9 @@ test("direct OS28 tool link opens the catalog", async ({page}) => {
   await expect(page.locator("#toolCatalog")).toContainText("os29_work_unit_resume");
   await expect(page.getByText("Bridge catalog entries")).toBeVisible();
 });
+test("WOW evidence identifiers shrink inside their cards at 320px", async ({page}) => {
+  await page.setViewportSize({width:320,height:800});
+  await page.goto("/wow.html");
+  const overflow = await page.locator(".metrics,.track,.compare,.evidence,.card,.stat,.fail,.pass,.row > div,.meta > *").evaluateAll(els => els.filter(e => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > innerWidth + 1).map(e => e.className || e.tagName));
+  expect(overflow).toEqual([]);
+});
