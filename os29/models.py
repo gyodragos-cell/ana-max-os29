@@ -51,9 +51,7 @@ class TraceEvent:
                 "outcome must be one of observed/success/failure/error/blocked/unknown"
             )
         if self.duration_ms is not None:
-            if isinstance(self.duration_ms, bool) or not isinstance(
-                self.duration_ms, (int, float)
-            ):
+            if isinstance(self.duration_ms, bool) or not isinstance(self.duration_ms, (int, float)):
                 raise ValueError("duration_ms must be a finite non-negative number")
             if not math.isfinite(float(self.duration_ms)) or self.duration_ms < 0:
                 raise ValueError("duration_ms must be a finite non-negative number")

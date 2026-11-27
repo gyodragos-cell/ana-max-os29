@@ -45,9 +45,7 @@ class PolicyDenied(ValueError):
 
 
 def _string_set(value: Any, label: str) -> frozenset[str]:
-    if not isinstance(value, list) or any(
-        not isinstance(item, str) or not item for item in value
-    ):
+    if not isinstance(value, list) or any(not isinstance(item, str) or not item for item in value):
         raise ValueError(f"invalid policy {label}")
     return frozenset(value)
 
@@ -114,10 +112,7 @@ class CapabilityPolicy:
                 or not isinstance(argv, list)
                 or not argv
                 or len(argv) > 64
-                or any(
-                    not isinstance(arg, str) or "\x00" in arg or len(arg) > 4096
-                    for arg in argv
-                )
+                or any(not isinstance(arg, str) or "\x00" in arg or len(arg) > 4096 for arg in argv)
             ):
                 raise ValueError("invalid command alias or argument vector")
             executable = Path(argv[0])
@@ -126,9 +121,7 @@ class CapabilityPolicy:
                 or not executable.is_file()
                 or executable.suffix.lower() in {".cmd", ".bat", ".ps1"}
             ):
-                raise ValueError(
-                    "approved executable must be an absolute executable file"
-                )
+                raise ValueError("approved executable must be an absolute executable file")
             commands[alias] = tuple(argv)
         return cls(
             mode=mode,
@@ -138,12 +131,8 @@ class CapabilityPolicy:
             else None,
             deny_tools=_string_set(data.get("deny_tools", []), "deny_tools"),
             commands=commands,
-            max_timeout_seconds=_integer(
-                data.get("max_timeout_seconds", 30), "timeout", 1, 90
-            ),
-            max_file_bytes=_integer(
-                data.get("max_file_bytes", 262_144), "file size", 1, 1_048_576
-            ),
+            max_timeout_seconds=_integer(data.get("max_timeout_seconds", 30), "timeout", 1, 90),
+            max_file_bytes=_integer(data.get("max_file_bytes", 262_144), "file size", 1, 1_048_576),
             max_output_bytes=_integer(
                 data.get("max_output_bytes", 262_144), "output size", 1024, 1_048_576
             ),
@@ -328,8 +317,7 @@ def bounded_command(
         ) as process:
             while process.poll() is None:
                 if (
-                    os.fstat(stdout.fileno()).st_size
-                    + os.fstat(stderr.fileno()).st_size
+                    os.fstat(stdout.fileno()).st_size + os.fstat(stderr.fileno()).st_size
                     > max_output
                 ):
                     reason = "command_output_limit"
@@ -341,10 +329,7 @@ def bounded_command(
             if reason and process.poll() is None:
                 process.kill()
             code = process.wait(timeout=5)
-        if (
-            os.fstat(stdout.fileno()).st_size + os.fstat(stderr.fileno()).st_size
-            > max_output
-        ):
+        if os.fstat(stdout.fileno()).st_size + os.fstat(stderr.fileno()).st_size > max_output:
             reason = reason or "command_output_limit"
         stdout.seek(0)
         stderr.seek(0)

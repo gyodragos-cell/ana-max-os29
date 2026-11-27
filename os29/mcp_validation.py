@@ -117,9 +117,7 @@ def _validate(value: Any, schema: dict[str, Any], path: str) -> None:
         valid = type(value) is int if kind == "integer" else type(value) in {int, float}
         if not valid:
             raise ValueError(f"{path} must be a finite {kind}")
-        if value < schema.get("minimum", -math.inf) or value > schema.get(
-            "maximum", math.inf
-        ):
+        if value < schema.get("minimum", -math.inf) or value > schema.get("maximum", math.inf):
             raise ValueError(f"{path} number outside schema")
     elif kind == "boolean":
         if type(value) is not bool:
@@ -130,14 +128,9 @@ def _validate(value: Any, schema: dict[str, Any], path: str) -> None:
         raise ValueError(f"{path} value outside schema enum")
 
 
-def validate_tool_arguments(
-    name: str, args: dict[str, Any], schema: dict[str, Any]
-) -> None:
+def validate_tool_arguments(name: str, args: dict[str, Any], schema: dict[str, Any]) -> None:
     validate_json(args)
-    if (
-        len(json.dumps(args, ensure_ascii=True, allow_nan=False).encode("ascii"))
-        > MAX_FRAME_BYTES
-    ):
+    if len(json.dumps(args, ensure_ascii=True, allow_nan=False).encode("ascii")) > MAX_FRAME_BYTES:
         raise ValueError("tool arguments exceed payload limit")
     if schema.get("additionalProperties") is False:
         extra = sorted(set(args) - set(schema.get("properties", {})))

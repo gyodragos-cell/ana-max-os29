@@ -57,9 +57,7 @@ def test_intelligence_report_requires_explicit_agent_identity_and_surfaces_recur
     ]
     assert report["regret_engine"]["candidates"][0]["regret_score"] is None
     assert report["resource_policy"]["auto_start_performed"] is False
-    assert (
-        report["resource_policy"]["optional_local_inference_start_performed"] is False
-    )
+    assert report["resource_policy"]["optional_local_inference_start_performed"] is False
 
 
 def test_skill_distillation_uses_only_validated_experience(tmp_path: Path):

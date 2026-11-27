@@ -38,9 +38,7 @@ def test_memory_search_retrieves_across_sources_and_filters_candidate_lessons(
         ).to_dict()
     )
     store.create_incident("trace-gateway-timeout")
-    store.save_capsule(
-        "mission-gateway", _capsule("Investigate the gateway health timeout")
-    )
+    store.save_capsule("mission-gateway", _capsule("Investigate the gateway health timeout"))
     store.upsert_capability(
         kind="service",
         name="gateway-health-probe",
@@ -61,9 +59,7 @@ def test_memory_search_retrieves_across_sources_and_filters_candidate_lessons(
     assert ordinary["semantic_embeddings_enabled"] is False
     found_types = {item["source_type"] for item in ordinary["results"]}
     assert {"event", "incident", "capsule", "capability"}.issubset(found_types)
-    assert not any(
-        item["source_ref"] == candidate["lesson_id"] for item in ordinary["results"]
-    )
+    assert not any(item["source_ref"] == candidate["lesson_id"] for item in ordinary["results"])
 
     with_candidates = search_memory(
         store,
@@ -100,9 +96,7 @@ def test_memory_index_redacts_sensitive_values_and_omits_unapproved_event_fields
 
     refresh_memory_index(store)
     with store._connect() as conn:
-        rows = conn.execute(
-            "SELECT title, body, metadata_json FROM memory_documents"
-        ).fetchall()
+        rows = conn.execute("SELECT title, body, metadata_json FROM memory_documents").fetchall()
     all_text = json.dumps([dict(row) for row in rows], ensure_ascii=True)
     assert "very-secret-token-value" not in all_text
     assert "never-index-this-bearer" not in all_text
@@ -112,9 +106,7 @@ def test_memory_index_redacts_sensitive_values_and_omits_unapproved_event_fields
 
 def test_memory_index_incremental_update_and_stale_text_removal(tmp_path: Path):
     store = Store(tmp_path / "retrieval-update.db")
-    store.save_capsule(
-        "mission-retrieval", _capsule("Blue comet is the old test objective")
-    )
+    store.save_capsule("mission-retrieval", _capsule("Blue comet is the old test objective"))
     first = refresh_memory_index(store)
     assert first["inserted"] >= 1
     second = refresh_memory_index(store)
@@ -122,9 +114,7 @@ def test_memory_index_incremental_update_and_stale_text_removal(tmp_path: Path):
     assert second["inserted"] == 0
     assert second["updated"] == 0
 
-    store.save_capsule(
-        "mission-retrieval", _capsule("Amber lantern is the new test objective")
-    )
+    store.save_capsule("mission-retrieval", _capsule("Amber lantern is the new test objective"))
     changed = refresh_memory_index(store)
     assert changed["updated"] == 1
     old_result = search_memory(store, "blue comet", source_types=["capsule"])

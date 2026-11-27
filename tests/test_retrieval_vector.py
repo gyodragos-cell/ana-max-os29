@@ -23,20 +23,14 @@ def test_row_normalization_fixes_magnitude_ranking_and_scale_invariance():
     result = rank_vectors(query, documents, top_k=2)
     assert result[0] == ("best", pytest.approx(0.8))
     for scale in (1e-200, 1e-3, 10.0, 1e200):
-        scaled = [
-            (key, tuple(value * scale for value in row)) for key, row in documents
-        ]
+        scaled = [(key, tuple(value * scale for value in row)) for key, row in documents]
         again = rank_vectors(tuple(v * scale for v in query), scaled, top_k=2)
         assert [key for key, _ in again] == [key for key, _ in result]
-        assert [score for _, score in again] == pytest.approx(
-            [score for _, score in result]
-        )
+        assert [score for _, score in again] == pytest.approx([score for _, score in result])
     assert math.hypot(*normalize_row((1e308, 1e308))) == pytest.approx(1.0)
 
 
-@pytest.mark.parametrize(
-    "bad", [[], [0.0, 0.0], [float("nan")], [float("inf")], [True]]
-)
+@pytest.mark.parametrize("bad", [[], [0.0, 0.0], [float("nan")], [float("inf")], [True]])
 def test_invalid_vectors_rejected(bad):
     with pytest.raises(ValueError):
         normalize_row(bad)
@@ -71,16 +65,12 @@ def test_hybrid_uses_real_fts_and_optional_deterministic_backend(tmp_path):
     assert base["backend"] == "sqlite_fts5"
     assert base["result_count"] == 1
     backend = DeterministicHashEmbedder(128)
-    assert backend.embed(["cosine normalization"]) == backend.embed(
-        ["cosine normalization"]
-    )
+    assert backend.embed(["cosine normalization"]) == backend.embed(["cosine normalization"])
     result = search_memory_hybrid(store, "cosine normalization", backend, limit=3)
     assert result["vector_candidates"] == 3
     assert result["results"][0]["doc_id"] == base["results"][0]["doc_id"]
     assert all(-1 <= row["cosine_score"] <= 1 for row in result["results"])
-    assert (
-        search_memory_hybrid(store, "cosine normalization", backend, limit=3) == result
-    )
+    assert search_memory_hybrid(store, "cosine normalization", backend, limit=3) == result
     with pytest.raises(ValueError, match="corpus exceeds"):
         search_memory_hybrid(store, "cosine normalization", backend, max_documents=2)
 
@@ -109,8 +99,8 @@ def test_read_only_search_uses_existing_index_without_writing(tmp_path):
     assert result["result_count"] == 1
     assert result["index_refresh"] is None
     assert (
-        search_memory_hybrid(
-            readonly, "cosine normalization", DeterministicHashEmbedder()
-        )["result_count"]
+        search_memory_hybrid(readonly, "cosine normalization", DeterministicHashEmbedder())[
+            "result_count"
+        ]
         == 3
     )

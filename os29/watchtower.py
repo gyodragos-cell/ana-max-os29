@@ -13,6 +13,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from .anti_repeat import evaluate
+from .capability_truth import reconcile
+from .contracts import attest
+from .sentinel import evaluate_snapshot
+
 MATURITY_LEVELS = (
     "DESIGN",
     "VALIDATED",
@@ -22,11 +27,6 @@ MATURITY_LEVELS = (
     "PRODUCTION_CANDIDATE",
     "PRODUCTION_READY",
 )
-
-from .anti_repeat import evaluate
-from .capability_truth import reconcile
-from .contracts import attest
-from .sentinel import evaluate_snapshot
 
 
 @dataclass(frozen=True)
@@ -61,15 +61,11 @@ class TraceLineageService:
 
     def validate(self, event: Mapping[str, Any]) -> ServiceResult:
         if "parent_trace_id" in event:
-            return ServiceResult(
-                self.name, "INVALID", errors=["parent_trace_id_forbidden"]
-            )
+            return ServiceResult(self.name, "INVALID", errors=["parent_trace_id_forbidden"])
         required = {"event_id", "trace_id", "source", "component", "kind", "action"}
         missing = sorted(required - set(event))
         if missing:
-            return ServiceResult(
-                self.name, "UNVERIFIED", errors=["missing:" + ",".join(missing)]
-            )
+            return ServiceResult(self.name, "UNVERIFIED", errors=["missing:" + ",".join(missing)])
         return ServiceResult(
             self.name,
             "VALID",
@@ -125,9 +121,7 @@ class CheckpointService:
         }
         missing = sorted(required - set(checkpoint))
         if missing:
-            return ServiceResult(
-                self.name, "UNVERIFIED", errors=["missing:" + ",".join(missing)]
-            )
+            return ServiceResult(self.name, "UNVERIFIED", errors=["missing:" + ",".join(missing)])
         return ServiceResult(
             self.name,
             "VALID",
@@ -139,9 +133,7 @@ class CheckpointService:
         checked = self.inspect(checkpoint)
         if checked.status != "VALID":
             return checked
-        if checkpoint_id in self._records and self._records[checkpoint_id] == dict(
-            checkpoint
-        ):
+        if checkpoint_id in self._records and self._records[checkpoint_id] == dict(checkpoint):
             return ServiceResult(
                 self.name,
                 "DUPLICATE",
@@ -215,9 +207,7 @@ class PersistentCheckpointService(CheckpointService):
                 (checkpoint_id,),
             ).fetchone()
             if row and row[0] == payload:
-                return ServiceResult(
-                    self.name, "DUPLICATE", {"checkpoint_id": checkpoint_id}
-                )
+                return ServiceResult(self.name, "DUPLICATE", {"checkpoint_id": checkpoint_id})
             db.execute(
                 "INSERT OR REPLACE INTO watchtower_checkpoints VALUES (?,?)",
                 (checkpoint_id, payload),
@@ -231,9 +221,7 @@ class PersistentCheckpointService(CheckpointService):
                 (checkpoint_id,),
             ).fetchone()
         if not row:
-            return ServiceResult(
-                self.name, "STALE_OR_MISSING", {"checkpoint_id": checkpoint_id}
-            )
+            return ServiceResult(self.name, "STALE_OR_MISSING", {"checkpoint_id": checkpoint_id})
         return ServiceResult(
             self.name,
             "RESUMABLE",
@@ -316,13 +304,9 @@ class MaturityService:
         if current not in MATURITY_LEVELS or target not in MATURITY_LEVELS:
             return ServiceResult(self.name, "INVALID", errors=["unknown_maturity"])
         if MATURITY_LEVELS.index(target) != MATURITY_LEVELS.index(current) + 1:
-            return ServiceResult(
-                self.name, "BLOCKED", errors=["non_sequential_transition"]
-            )
+            return ServiceResult(self.name, "BLOCKED", errors=["non_sequential_transition"])
         if not all(evidence.get(k) for k in ("source", "method", "result", "evidence")):
-            return ServiceResult(
-                self.name, "UNVERIFIED", errors=["insufficient_evidence"]
-            )
+            return ServiceResult(self.name, "UNVERIFIED", errors=["insufficient_evidence"])
         return ServiceResult(
             self.name,
             "ADVANCED",

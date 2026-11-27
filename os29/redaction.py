@@ -59,9 +59,7 @@ def is_sensitive_key(key: str) -> bool:
     )
 
 
-def redact_value(
-    value: Any, *, max_length: int = 2000, key_hint: str = ""
-) -> tuple[Any, int]:
+def redact_value(value: Any, *, max_length: int = 2000, key_hint: str = "") -> tuple[Any, int]:
     if key_hint and is_sensitive_key(key_hint):
         return REDACTED, 1
     if isinstance(value, Mapping):

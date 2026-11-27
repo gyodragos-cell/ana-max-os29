@@ -23,7 +23,5 @@ def test_degraded_service_and_dependency():
 
 
 def test_catalog_drift_is_reported():
-    result = evaluate_snapshot(
-        {"services": [], "error_fingerprints": [], "catalog_drift": True}
-    )
+    result = evaluate_snapshot({"services": [], "error_fingerprints": [], "catalog_drift": True})
     assert "catalog_drift_detected" in result["findings"]

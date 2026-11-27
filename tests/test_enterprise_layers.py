@@ -18,9 +18,8 @@ def test_conformance_classification():
     assert (
         certify(
             "OS29",
-            {
-                k: True
-                for k in (
+            dict.fromkeys(
+                (
                     "contracts",
                     "evidence",
                     "trace",
@@ -29,8 +28,9 @@ def test_conformance_classification():
                     "anti_repeat",
                     "sentinel",
                     "observability",
-                )
-            },
+                ),
+                True,
+            ),
         )["status"]
         == "CERTIFIED"
     )

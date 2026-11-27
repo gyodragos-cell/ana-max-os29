@@ -74,23 +74,25 @@ def _resource_snapshot() -> dict[str, Any]:
 
 def _temporal_branch(event: dict[str, Any]) -> dict[str, Any]:
     attributes = event.get("attributes") or {}
-    status_code = (
-        attributes.get("status_code") if isinstance(attributes, dict) else None
-    )
+    status_code = attributes.get("status_code") if isinstance(attributes, dict) else None
     exception_type = (
-        str(attributes.get("exception_type", ""))
-        if isinstance(attributes, dict)
-        else ""
+        str(attributes.get("exception_type", "")) if isinstance(attributes, dict) else ""
     )
     action_text = str(event.get("action", ""))
     if isinstance(status_code, int) and status_code >= 500:
         experiment = "Replay the same safe request against a controlled test endpoint while recording dependency health and one retry-free baseline."
-        expected = "Determine whether the server-side failure is reproducible independently of the client."
+        expected = (
+            "Determine whether the server-side failure is reproducible independently of the client."
+        )
         falsifier = "The controlled endpoint is healthy and repeated failures cannot be reproduced."
     elif "timeout" in exception_type.lower() or "timeout" in action_text.lower():
         experiment = "Separate connection establishment time from response-read time using a bounded benign probe; compare with a baseline."
-        expected = "Identify whether delay occurs before connection or while waiting for the response."
-        falsifier = "Both phases complete within baseline bounds and the timeout cannot be reproduced."
+        expected = (
+            "Identify whether delay occurs before connection or while waiting for the response."
+        )
+        falsifier = (
+            "Both phases complete within baseline bounds and the timeout cannot be reproduced."
+        )
     elif event.get("kind", "").startswith("frida.method.exit"):
         experiment = "Repeat the approved test method once with a shared trace ID and compare method entry/exit to the matching HTTP status."
         expected = "Establish whether the method exception and HTTP event occur in the same trace."
@@ -98,9 +100,7 @@ def _temporal_branch(event: dict[str, Any]) -> dict[str, Any]:
     else:
         experiment = "Create the smallest benign reproducer and collect a fresh trace with an explicit parent-event chain before changing code."
         expected = "Produce a repeatable failure signature and a trace that can distinguish competing hypotheses."
-        falsifier = (
-            "The minimal reproducer is stable and no corresponding failure recurs."
-        )
+        falsifier = "The minimal reproducer is stable and no corresponding failure recurs."
     return {
         "branch_id": f"branch-review-{event.get('event_id', 'unknown')}",
         "based_on_event_id": event.get("event_id"),
@@ -116,9 +116,7 @@ def _temporal_branch(event: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_intelligence_report(
-    store: Store, *, event_limit: int = 1000
-) -> dict[str, Any]:
+def build_intelligence_report(store: Store, *, event_limit: int = 1000) -> dict[str, Any]:
     """Evidence-first report spanning Agent DNA, REM, Regret, Discovery, immunity and branching."""
     event_limit = max(1, min(int(event_limit), 1000))
     sampled_events = store.recent_events(limit=event_limit)
@@ -166,14 +164,10 @@ def build_intelligence_report(
     agent_profiles = []
     for agent, samples in sorted(by_agent.items()):
         definitive = [
-            event
-            for event in samples
-            if event.get("outcome") in {"success", "failure", "error"}
+            event for event in samples if event.get("outcome") in {"success", "failure", "error"}
         ]
         successes = sum(event.get("outcome") == "success" for event in definitive)
-        failure_count = sum(
-            event.get("outcome") in {"failure", "error"} for event in definitive
-        )
+        failure_count = sum(event.get("outcome") in {"failure", "error"} for event in definitive)
         durations = [
             float(event["duration_ms"])
             for event in samples
@@ -189,22 +183,16 @@ def build_intelligence_report(
                 "definitive_outcome_count": len(definitive),
                 "success_count": successes,
                 "failure_or_error_count": failure_count,
-                "success_rate": round(successes / len(definitive), 4)
-                if definitive
-                else None,
+                "success_rate": round(successes / len(definitive), 4) if definitive else None,
                 "mean_observed_duration_ms": round(sum(durations) / len(durations), 3)
                 if durations
                 else None,
-                "confidence": "eligible_for_review"
-                if enough
-                else "insufficient_evidence",
+                "confidence": "eligible_for_review" if enough else "insufficient_evidence",
                 "evidence_event_ids": [event["event_id"] for event in samples[:20]],
             }
         )
 
-    failures = [
-        event for event in events if event.get("outcome") in {"failure", "error"}
-    ]
+    failures = [event for event in events if event.get("outcome") in {"failure", "error"}]
     failure_groups: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
     for event in failures:
         failure_groups[_signature(event)].append(event)
@@ -220,9 +208,7 @@ def build_intelligence_report(
                 "occurrences_in_window": len(samples),
                 "trace_ids": sorted({str(event.get("trace_id")) for event in samples}),
                 "event_ids": [event["event_id"] for event in samples[:20]],
-                "review_priority": "recurrent"
-                if len(samples) >= 2
-                else "single_observation",
+                "review_priority": "recurrent" if len(samples) >= 2 else "single_observation",
                 "causal_status": "unverified",
             }
         )
@@ -234,9 +220,7 @@ def build_intelligence_report(
     for signature, samples in failure_groups.items():
         if len(samples) < 2:
             continue
-        unresolved = [
-            event for event in samples if event.get("event_id") not in validated_sources
-        ]
+        unresolved = [event for event in samples if event.get("event_id") not in validated_sources]
         if unresolved:
             regret_candidates.append(
                 {
@@ -245,9 +229,7 @@ def build_intelligence_report(
                     "action": signature[2],
                     "repeated_failure_count": len(samples),
                     "unlinked_failure_count": len(unresolved),
-                    "evidence_event_ids": [
-                        event["event_id"] for event in unresolved[:20]
-                    ],
+                    "evidence_event_ids": [event["event_id"] for event in unresolved[:20]],
                     "regret_score": None,
                     "reason": "Repeated failures have no linked validated experience; cost and avoidability have not been established.",
                     "status": "candidate_for_operator_review",
@@ -270,11 +252,7 @@ def build_intelligence_report(
             "validated_instance_count": len(items),
             "lesson_ids": [item["lesson_id"] for item in items],
             "source_event_ids": sorted(
-                {
-                    event_id
-                    for item in items
-                    for event_id in item.get("source_event_ids", [])
-                }
+                {event_id for item in items for event_id in item.get("source_event_ids", [])}
             ),
             "status": "repeated_validated_pattern",
         }
@@ -343,12 +321,8 @@ def build_intelligence_report(
         )
     recurrent_count = sum(1 for items in failure_groups.values() if len(items) >= 2)
     if recurrent_count:
-        immune_signals.append(
-            {"signal": "recurrent_failure_signature", "count": recurrent_count}
-        )
-    immune_status = (
-        "review_needed" if immune_signals else "no_high_confidence_signal_in_window"
-    )
+        immune_signals.append({"signal": "recurrent_failure_signature", "count": recurrent_count})
+    immune_status = "review_needed" if immune_signals else "no_high_confidence_signal_in_window"
 
     temporal_branches = [_temporal_branch(event) for event in failures[:10]]
 

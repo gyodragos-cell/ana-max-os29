@@ -66,7 +66,7 @@ def rank_vectors(
             raise ValueError("vector dimensions do not match")
         # Normalize each document independently before taking the dot product.
         normalized_document = normalize_row(row)
-        score = math.fsum(a * b for a, b in zip(normalized_query, normalized_document))
+        score = math.fsum(a * b for a, b in zip(normalized_query, normalized_document, strict=True))
         ranked.append((identifier, max(-1.0, min(1.0, score))))
     return sorted(ranked, key=lambda item: (-item[1], item[0]))[:top_k]
 
@@ -128,20 +128,16 @@ def search_memory_hybrid(
     )
     params: list[Any] = []
     if source_types:
-        conditions.append(
-            "source_type IN (" + ",".join("?" for _ in source_types) + ")"
-        )
+        conditions.append("source_type IN (" + ",".join("?" for _ in source_types) + ")")
         params.extend(source_types)
     with store._connect() as connection:
         rows = connection.execute(
             "SELECT doc_id, source_type, source_ref, title, body, trust_status FROM memory_documents "
             "WHERE " + " AND ".join(conditions) + " ORDER BY doc_id LIMIT ?",
-            params + [max_documents + 1],
+            [*params, max_documents + 1],
         ).fetchall()
     if len(rows) > max_documents:
-        raise ValueError(
-            "vector corpus exceeds configured limit; use FTS5 or a smaller scope"
-        )
+        raise ValueError("vector corpus exceeds configured limit; use FTS5 or a smaller scope")
     if not rows:
         return {
             "backend": backend.name,
@@ -156,16 +152,13 @@ def search_memory_hybrid(
         raise ValueError("embedding backend returned wrong vector count")
     vector_ranked = rank_vectors(
         vectors[0],
-        [(row["doc_id"], vector) for row, vector in zip(rows, vectors[1:])],
+        [(row["doc_id"], vector) for row, vector in zip(rows, vectors[1:], strict=True)],
         top_k=len(rows),
     )
     vector_ranks = {
-        identifier: (rank, score)
-        for rank, (identifier, score) in enumerate(vector_ranked, 1)
+        identifier: (rank, score) for rank, (identifier, score) in enumerate(vector_ranked, 1)
     }
-    lexical_ranks = {
-        item["doc_id"]: rank for rank, item in enumerate(lexical["results"], 1)
-    }
+    lexical_ranks = {item["doc_id"]: rank for rank, item in enumerate(lexical["results"], 1)}
     results: list[dict[str, Any]] = []
     for row in rows:
         identifier = row["doc_id"]

@@ -9,9 +9,7 @@ from os29.models import TraceEvent
 from os29.store import Store
 
 
-def event(
-    trace_id: str, action: str, outcome: str = "observed", **kwargs
-) -> TraceEvent:
+def event(trace_id: str, action: str, outcome: str = "observed", **kwargs) -> TraceEvent:
     return TraceEvent(
         trace_id=trace_id,
         source="pytest",
@@ -73,9 +71,7 @@ def test_trace_parent_chain_and_incident_do_not_claim_root_cause(tmp_path: Path)
             "relation": "parent_of",
         }
     ]
-    assert diag["failure_lineage"][0]["ancestor_event_ids_nearest_first"] == [
-        first["event_id"]
-    ]
+    assert diag["failure_lineage"][0]["ancestor_event_ids_nearest_first"] == [first["event_id"]]
     assert diag["failure_lineage"][0]["warnings"] == []
 
 
@@ -98,9 +94,7 @@ def test_candidate_experience_requires_persisted_source_events(tmp_path: Path):
 
 def test_experience_requires_a_linked_verification_event_to_validate(tmp_path: Path):
     store = Store(tmp_path / "experience-gate.db")
-    observed = store.record_event(
-        event("trace-exp-gate", "reproduce", "failure").to_dict()
-    )
+    observed = store.record_event(event("trace-exp-gate", "reproduce", "failure").to_dict())
     verification = store.record_event(
         TraceEvent(
             trace_id="trace-exp-gate",

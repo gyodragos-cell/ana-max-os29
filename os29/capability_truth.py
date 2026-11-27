@@ -11,11 +11,7 @@ def _names(items: Iterable[Any]) -> set[str]:
     for item in items:
         if isinstance(item, str) and item:
             result.add(item)
-        elif (
-            isinstance(item, Mapping)
-            and isinstance(item.get("name"), str)
-            and item["name"]
-        ):
+        elif isinstance(item, Mapping) and isinstance(item.get("name"), str) and item["name"]:
             result.add(item["name"])
     return result
 

@@ -13,10 +13,11 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-from os29.store import Store
-from os29.models import TraceEvent
+from os29.models import TraceEvent  # noqa: E402
+from os29.store import Store  # noqa: E402
 
 
 def main() -> None:
@@ -36,16 +37,12 @@ def main() -> None:
             attributes={"step": 1, "label": "OS29 quickstart demo"},
         )
         result = store.record_event(event)
-        print(
-            f"[record_event] event_id={result['event_id']}  redactions={result['redactions']}"
-        )
+        print(f"[record_event] event_id={result['event_id']}  redactions={result['redactions']}")
 
         # --- 2. Verify stats() shows event_count > 0 ---
         s = store.stats()
         assert s["events"] > 0, f"Expected events>0, got {s['events']}"
-        print(
-            f"[stats] events={s['events']}  traces={s['traces']}  status={s['status']}"
-        )
+        print(f"[stats] events={s['events']}  traces={s['traces']}  status={s['status']}")
 
         # --- 3. Save a mission capsule ---
         capsule_data = {
@@ -59,9 +56,7 @@ def main() -> None:
             "next_steps": ["Run 02_crash_recovery_chaos.py"],
         }
         saved = store.save_capsule("mission-quickstart-001", capsule_data)
-        print(
-            f"[save_capsule] mission_id={saved['mission_id']}  updated_at={saved['updated_at']}"
-        )
+        print(f"[save_capsule] mission_id={saved['mission_id']}  updated_at={saved['updated_at']}")
 
         # --- 4. Retrieve the capsule ---
         retrieved = store.get_capsule("mission-quickstart-001")
@@ -82,4 +77,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    if not __debug__:
+        raise RuntimeError("Run verification examples without Python -O")
     main()

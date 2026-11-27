@@ -159,9 +159,7 @@ def test_truncation_requires_external_anchor(tmp_path):
     # structurally valid chain. Only a previously retained head proves this.
     with sqlite3.connect(database) as connection:
         connection.execute("DELETE FROM work_unit_integrity WHERE sequence=2")
-        connection.execute(
-            "DELETE FROM trace_events WHERE event_id=?", (second["event_id"],)
-        )
+        connection.execute("DELETE FROM trace_events WHERE event_id=?", (second["event_id"],))
     assert store.verify_work_unit(WORK_ID)["valid"]
     assert not store.verify_work_unit(WORK_ID, expected_head=head)["valid"]
 
@@ -191,7 +189,7 @@ def test_chain_write_failure_rolls_back_state_and_event(tmp_path):
 
 def test_legacy_history_is_not_silently_certified(tmp_path):
     database = tmp_path / "legacy.db"
-    store, service = setup_unit(database)
+    _store, service = setup_unit(database)
     receipt(service)
     with sqlite3.connect(database) as connection:
         connection.execute("DROP TABLE work_unit_integrity")

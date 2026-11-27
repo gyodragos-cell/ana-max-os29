@@ -109,9 +109,7 @@ def _validate_ollama_url(value: str) -> str:
         or parsed.query
         or parsed.fragment
     ):
-        raise ValueError(
-            "Local inference accepts only an HTTP loopback endpoint on port 11434"
-        )
+        raise ValueError("Local inference accepts only an HTTP loopback endpoint on port 11434")
     return f"http://{parsed.hostname}:11434"
 
 
@@ -153,9 +151,7 @@ def _select_evidence_window(body: str, query: str, limit: int) -> str:
         window = lowered[start : start + limit]
         matched = [term for term in terms if term in window]
         weighted = sum(
-            3
-            if "_" in term or any(char.isdigit() for char in term) or len(term) >= 8
-            else 1
+            3 if "_" in term or any(char.isdigit() for char in term) or len(term) >= 8 else 1
             for term in matched
         )
         positions = [window.find(term) for term in matched]
@@ -175,9 +171,7 @@ def _load_evidence_bodies(
 ) -> list[dict[str, Any]]:
     if not results:
         return []
-    ids = [
-        str(item["doc_id"]) for item in results if isinstance(item.get("doc_id"), str)
-    ]
+    ids = [str(item["doc_id"]) for item in results if isinstance(item.get("doc_id"), str)]
     if not ids:
         return []
     placeholders = ",".join("?" for _ in ids)
@@ -255,9 +249,7 @@ def _call_ollama(
         raise ValueError(f"Local Ollama inference returned HTTP {exc.code}") from None
     except (URLError, TimeoutError, OSError) as exc:
         # Report the local endpoint failure without echoing request prompts or response bodies.
-        raise ValueError(
-            f"Local Ollama inference failed: {type(exc).__name__}"
-        ) from None
+        raise ValueError(f"Local Ollama inference failed: {type(exc).__name__}") from None
     if len(raw) > MAX_RESPONSE_BYTES:
         raise ValueError("Local Ollama response exceeded the 128 KiB response limit")
     try:
@@ -308,11 +300,7 @@ def answer_from_memory(
         or not 1 <= timeout_seconds <= 90
     ):
         raise ValueError("timeout must be between 1 and 90 seconds")
-    if (
-        isinstance(num_ctx, bool)
-        or not isinstance(num_ctx, int)
-        or not 512 <= num_ctx <= 4096
-    ):
+    if isinstance(num_ctx, bool) or not isinstance(num_ctx, int) or not 512 <= num_ctx <= 4096:
         raise ValueError("num_ctx must be between 512 and 4096")
     if (
         isinstance(num_predict, bool)
@@ -324,9 +312,7 @@ def answer_from_memory(
     endpoint = _validate_ollama_url(ollama_url)
     model_name = _validate_model_name(model)
     selected_types = list(source_types or [])
-    selected_retrieval_query = (
-        retrieval_query or ""
-    ).strip() or _derive_retrieval_query(query)
+    selected_retrieval_query = (retrieval_query or "").strip() or _derive_retrieval_query(query)
     if len(selected_retrieval_query) > MAX_QUERY_CHARS:
         raise ValueError(f"retrieval_query cannot exceed {MAX_QUERY_CHARS} characters")
     retrieved = search_memory(
@@ -438,9 +424,7 @@ def answer_from_memory(
         or not isinstance(structured.get("insufficient_evidence"), bool)
         or any(not isinstance(item, str) for item in structured.get("citations", []))
     ):
-        raise ValueError(
-            "Local model answer did not match the structured-answer contract"
-        )
+        raise ValueError("Local model answer did not match the structured-answer contract")
     answer_text = structured["answer"].strip()
     if not answer_text or len(answer_text) > 12000:
         raise ValueError("Local model produced an empty or oversized answer")
@@ -458,9 +442,7 @@ def answer_from_memory(
     else:
         answer_status = "needs_review"
     if valid_citations and not inline:
-        answer_text += "\n\nSources: " + ", ".join(
-            f"[{item}]" for item in valid_citations
-        )
+        answer_text += "\n\nSources: " + ", ".join(f"[{item}]" for item in valid_citations)
 
     return {
         "answer_status": answer_status,

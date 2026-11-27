@@ -61,17 +61,13 @@ def test_workspace_paths_literal_search_and_file_bounds(context):
     for path in ("../outside.txt", str(outside)):
         error, payload = invoke("os29_file_read", {"path": path})
         assert error and payload["error"] == "path_outside_workspace"
-    error, _ = invoke(
-        "os29_file_write", {"path": "../outside.txt", "content": "changed"}
-    )
+    error, _ = invoke("os29_file_write", {"path": "../outside.txt", "content": "changed"})
     assert error and outside.read_text() == "outside-marker"
     error, result = invoke(
         "os29_file_write", {"path": "inside.txt", "content": "literal [x]\nnext"}
     )
     assert not error and result["success"]
-    error, result = invoke(
-        "os29_file_read", {"path": "inside.txt", "start_line": 1, "end_line": 1}
-    )
+    error, result = invoke("os29_file_read", {"path": "inside.txt", "start_line": 1, "end_line": 1})
     assert not error and result["content"] == "literal [x]"
     error, result = invoke("os29_code_search", {"pattern": "[x]"})
     assert not error and result["match_count"] == 1
@@ -128,9 +124,7 @@ def test_dry_run_and_explicit_allow_deny_lists(context):
         allow_tools=["os29_file_write", "os29_status"],
         deny_tools=["os29_status"],
     )
-    error, payload = invoke(
-        "os29_file_write", {"path": "planned.txt", "content": "data"}
-    )
+    error, payload = invoke("os29_file_write", {"path": "planned.txt", "content": "data"})
     assert not error and payload["executed"] is False
     assert not (workspace / "planned.txt").exists()
     assert not database.exists()
@@ -140,7 +134,7 @@ def test_dry_run_and_explicit_allow_deny_lists(context):
 
 
 def test_command_alias_executes_exact_argv_and_bounds_time_output(context):
-    workspace, _, configure = context
+    _workspace, _, configure = context
     configure(
         commands={
             "smoke": [sys.executable, "-c", "print('POLICY_SMOKE_PASS')"],
@@ -155,9 +149,7 @@ def test_command_alias_executes_exact_argv_and_bounds_time_output(context):
     assert result["stdout"].strip() == "POLICY_SMOKE_PASS"
     error, result = invoke("os29_terminal_exec", {"command": "smoke; other"})
     assert error and result["error"] == "command_alias_not_approved"
-    error, result = invoke(
-        "os29_terminal_exec", {"command": "smoke", "timeout_seconds": 2}
-    )
+    error, result = invoke("os29_terminal_exec", {"command": "smoke", "timeout_seconds": 2})
     assert error and result["error"] == "command_timeout_limit"
     _, result = invoke("os29_terminal_exec", {"command": "slow"})
     assert result["exit_code"] == -1 and result["reason"] == "command_timeout"

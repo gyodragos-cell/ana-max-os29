@@ -228,9 +228,7 @@ class Store:
             "redactions": redactions,
         }
 
-    def verify_work_unit(
-        self, work_id: str, *, expected_head: str | None = None
-    ) -> dict[str, Any]:
+    def verify_work_unit(self, work_id: str, *, expected_head: str | None = None) -> dict[str, Any]:
         if not isinstance(work_id, str) or not work_id.strip():
             raise ValueError("work unit ID is required")
         with self._connect() as conn:
@@ -306,11 +304,11 @@ class Store:
             ).fetchone()
         incident_id = existing["incident_id"] if existing else str(uuid4())
         first = failures[0]
-        title = (
-            f"{first.get('component', 'unknown')} — {first.get('action', 'failure')}"
-        )
+        title = f"{first.get('component', 'unknown')} — {first.get('action', 'failure')}"
         evidence_ids = [e["event_id"] for e in failures]
-        summary = f"{len(failures)} failure/error event(s) observed among {len(events)} trace event(s)."
+        summary = (
+            f"{len(failures)} failure/error event(s) observed among {len(events)} trace event(s)."
+        )
         cause = "UNVERIFIED: correlated evidence only; a root cause has not been established."
         now = utc_now()
         with self._connect() as conn:
@@ -548,12 +546,9 @@ class Store:
         confidence: float = 0.0,
     ) -> dict[str, Any]:
         if not all(
-            isinstance(value, str) and value.strip()
-            for value in (problem_key, cause, solution)
+            isinstance(value, str) and value.strip() for value in (problem_key, cause, solution)
         ):
-            raise ValueError(
-                "problem_key, cause and solution are required non-empty strings"
-            )
+            raise ValueError("problem_key, cause and solution are required non-empty strings")
         if (
             sum(len(value.encode("utf-8")) for value in (problem_key, cause, solution))
             > MAX_EXPERIENCE_TEXT_BYTES
@@ -564,12 +559,9 @@ class Store:
         if not isinstance(source_event_ids, list) or not source_event_ids:
             raise ValueError("at least one source event is required")
         if len(source_event_ids) > 1000 or any(
-            not isinstance(event_id, str) or not event_id.strip()
-            for event_id in source_event_ids
+            not isinstance(event_id, str) or not event_id.strip() for event_id in source_event_ids
         ):
-            raise ValueError(
-                "source_event_ids must contain at most 1000 non-empty strings"
-            )
+            raise ValueError("source_event_ids must contain at most 1000 non-empty strings")
         if len(set(source_event_ids)) != len(source_event_ids):
             raise ValueError("source_event_ids must be unique")
         with self._connect() as conn:
@@ -580,9 +572,7 @@ class Store:
             ).fetchall()
         found = {row["event_id"] for row in rows}
         if found != set(source_event_ids):
-            raise ValueError(
-                "all source_event_ids must reference persisted trace events"
-            )
+            raise ValueError("all source_event_ids must reference persisted trace events")
         if outcome_verified or verified_by:
             raise ValueError(
                 "experience must start as candidate; use validate_experience with a linked verification event"
@@ -638,9 +628,7 @@ class Store:
             raise ValueError("verified_by is required")
         confidence = float(confidence)
         if not math.isfinite(confidence) or confidence < 0.5 or confidence > 1.0:
-            raise ValueError(
-                "validated confidence must be finite and between 0.5 and 1.0"
-            )
+            raise ValueError("validated confidence must be finite and between 0.5 and 1.0")
         candidate = self.get_experience(lesson_id)
         if not candidate:
             raise ValueError("experience not found")
@@ -648,9 +636,7 @@ class Store:
             raise ValueError("only candidate experiences can be validated")
         source_ids = candidate["source_event_ids"]
         if verification_event_id not in source_ids:
-            raise ValueError(
-                "verification event must already be linked in source_event_ids"
-            )
+            raise ValueError("verification event must already be linked in source_event_ids")
         verification = self.get_event(verification_event_id)
         if not verification:
             raise ValueError("verification event does not exist")
@@ -667,9 +653,7 @@ class Store:
             )
         outcome = verification.get("outcome")
         if outcome not in {"success", "failure"}:
-            raise ValueError(
-                "verification event must have a definitive success/failure outcome"
-            )
+            raise ValueError("verification event must have a definitive success/failure outcome")
         now = utc_now()
         with self._connect() as conn:
             conn.execute(
@@ -763,9 +747,7 @@ class Store:
         if not isinstance(evidence, dict):
             raise ValueError("capability evidence must be a JSON object")
         safe, redactions = redact_value(evidence)
-        evidence_json = _bounded_json(
-            safe, MAX_EVIDENCE_JSON_BYTES, "capability evidence"
-        )
+        evidence_json = _bounded_json(safe, MAX_EVIDENCE_JSON_BYTES, "capability evidence")
         now = utc_now()
         node_id = str(uuid4())
         with self._connect() as conn:
@@ -797,9 +779,7 @@ class Store:
         if evidence is not None and not isinstance(evidence, dict):
             raise ValueError("capability edge evidence must be a JSON object")
         safe, redactions = redact_value(evidence or {})
-        evidence_json = _bounded_json(
-            safe, MAX_EVIDENCE_JSON_BYTES, "capability edge evidence"
-        )
+        evidence_json = _bounded_json(safe, MAX_EVIDENCE_JSON_BYTES, "capability edge evidence")
         now = utc_now()
         with self._connect() as conn:
             ids = {
@@ -868,11 +848,7 @@ class Store:
         ended_at: str | None = None,
     ) -> dict[str, Any]:
         """Append one immutable, redacted session checkpoint; identical retries are idempotent."""
-        if (
-            not isinstance(session_id, str)
-            or not session_id.strip()
-            or len(session_id) > 128
-        ):
+        if not isinstance(session_id, str) or not session_id.strip() or len(session_id) > 128:
             raise ValueError("session_id must be 1-128 non-whitespace characters")
         if not isinstance(source, str) or source not in {
             "chatgpt_session",
@@ -1014,30 +990,20 @@ class Store:
     def stats(self) -> dict[str, Any]:
         with self._connect() as conn:
             events = conn.execute("SELECT COUNT(*) FROM trace_events").fetchone()[0]
-            traces = conn.execute(
-                "SELECT COUNT(DISTINCT trace_id) FROM trace_events"
-            ).fetchone()[0]
+            traces = conn.execute("SELECT COUNT(DISTINCT trace_id) FROM trace_events").fetchone()[0]
             incidents = conn.execute(
                 "SELECT COUNT(*) FROM incidents WHERE status='open'"
             ).fetchone()[0]
-            capsules = conn.execute("SELECT COUNT(*) FROM mission_capsules").fetchone()[
-                0
-            ]
+            capsules = conn.execute("SELECT COUNT(*) FROM mission_capsules").fetchone()[0]
             candidates = conn.execute(
                 "SELECT COUNT(*) FROM experiences WHERE status='candidate'"
             ).fetchone()[0]
             validated = conn.execute(
                 "SELECT COUNT(*) FROM experiences WHERE status='validated'"
             ).fetchone()[0]
-            capabilities = conn.execute(
-                "SELECT COUNT(*) FROM capability_nodes"
-            ).fetchone()[0]
-            capability_edges = conn.execute(
-                "SELECT COUNT(*) FROM capability_edges"
-            ).fetchone()[0]
-            session_records = conn.execute(
-                "SELECT COUNT(*) FROM session_records"
-            ).fetchone()[0]
+            capabilities = conn.execute("SELECT COUNT(*) FROM capability_nodes").fetchone()[0]
+            capability_edges = conn.execute("SELECT COUNT(*) FROM capability_edges").fetchone()[0]
+            session_records = conn.execute("SELECT COUNT(*) FROM session_records").fetchone()[0]
         return {
             "status": "ok",
             "schema_version": "os29.store.v1",

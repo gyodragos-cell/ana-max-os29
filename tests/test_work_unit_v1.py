@@ -31,10 +31,7 @@ def test_work_unit_resume_uses_only_id_and_survives_store_reopen(tmp_path):
     )
 
     assert resumed["work_id"] == "wu-pytest-handoff-001"
-    assert (
-        resumed["objective"]
-        == "Verify a second agent can resume from only a Work Unit ID."
-    )
+    assert resumed["objective"] == "Verify a second agent can resume from only a Work Unit ID."
     assert resumed["owner_agent"] == "agent-a"
     assert resumed["next_action"] == "Agent B should resume this Work Unit by ID."
     assert resumed["context_refs"] == ["trace:wu-pytest-handoff-001"]
@@ -270,9 +267,11 @@ def test_receipts_export_to_canonical_db_artifacts_folder(tmp_path):
     result = service.export_receipt(work_id="wu-pytest-handoff-001")
     assert result["json_path"].startswith(str(tmp_path))
     assert result["markdown_path"].startswith(str(tmp_path))
-    parsed = json.loads(open(result["json_path"], encoding="utf-8").read())
+    with open(result["json_path"], encoding="utf-8") as jf:
+        parsed = json.loads(jf.read())
     assert parsed["evidence"][0]["details"]["exit_code"] == 0
-    markdown = open(result["markdown_path"], encoding="utf-8").read()
+    with open(result["markdown_path"], encoding="utf-8") as mf:
+        markdown = mf.read()
     assert "Evidence Receipt" in markdown
     assert "Python 3.12.0" in markdown
 
@@ -366,14 +365,8 @@ def test_two_clients_cannot_overwrite_same_revision(tmp_path):
     with ThreadPoolExecutor(max_workers=2) as pool:
         outcomes = list(pool.map(independently_checkpoint, ["client-a", "client-b"]))
     assert outcomes.count(2) == 1
-    assert (
-        len([outcome for outcome in outcomes if "revision conflict" in str(outcome)])
-        == 1
-    )
-    assert (
-        WorkUnitService(Store(db_path)).get(work_id="wu-pytest-handoff-001")["revision"]
-        == 2
-    )
+    assert len([outcome for outcome in outcomes if "revision conflict" in str(outcome)]) == 1
+    assert WorkUnitService(Store(db_path)).get(work_id="wu-pytest-handoff-001")["revision"] == 2
 
 
 def test_atomic_create_does_not_overwrite_original_work_unit(tmp_path):
@@ -383,12 +376,7 @@ def test_atomic_create_does_not_overwrite_original_work_unit(tmp_path):
     _create(WorkUnitService(Store(database)))
     with pytest.raises(ValueError, match="already exists"):
         _create(WorkUnitService(Store(database)))
-    assert (
-        WorkUnitService(Store(database)).get(work_id="wu-pytest-handoff-001")[
-            "revision"
-        ]
-        == 1
-    )
+    assert WorkUnitService(Store(database)).get(work_id="wu-pytest-handoff-001")["revision"] == 1
 
 
 def test_handoff_sender_matches_owner_and_duplicate_is_idempotent(tmp_path):
@@ -428,15 +416,15 @@ def test_evidence_receipt_idempotency_and_conflicts(tmp_path):
 
     service = WorkUnitService(Store(tmp_path / "os29.db"))
     _create(service)
-    kwargs = dict(
-        work_id="wu-pytest-handoff-001",
-        actor_agent="agent-a",
-        action="run test",
-        outcome="success",
-        evidence={"command": "python -V", "exit_code": 0, "stdout": "Python 3.12"},
-        next_action="verify",
-        idempotency_key="receipt-dedup-001",
-    )
+    kwargs = {
+        "work_id": "wu-pytest-handoff-001",
+        "actor_agent": "agent-a",
+        "action": "run test",
+        "outcome": "success",
+        "evidence": {"command": "python -V", "exit_code": 0, "stdout": "Python 3.12"},
+        "next_action": "verify",
+        "idempotency_key": "receipt-dedup-001",
+    }
     first = service.record_evidence_receipt(**kwargs)
     second = service.record_evidence_receipt(**kwargs)
     assert second["event_id"] == first["event_id"]

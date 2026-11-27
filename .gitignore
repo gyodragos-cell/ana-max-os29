@@ -35,3 +35,10 @@ build/
 .validation-clone/
 _local_release_builder_DO_NOT_COMMIT.py
 .local-release-audit/
+
+# Local development reports and environments
+.coverage
+.coverage.*
+coverage.json
+htmlcov/
+test_clean_venv/
