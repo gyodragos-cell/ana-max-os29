@@ -1,4 +1,10 @@
 # ANA MAX OS29
+## Explore the public Tower Control V2
+
+**[Open the interactive Tower](https://gyodragos-cell.github.io/ana-max-os29/live.html)** · **[OS28 tool examples](https://gyodragos-cell.github.io/ana-max-os29/live.html#services)** · **[Two AI agents, one real bug](https://gyodragos-cell.github.io/ana-max-os29/wow.html)**
+
+The English public edition reproduces the local Tower design. Explore eleven views, simulated services, a sample mission handoff, and historical screenshots and repair evidence. The browser demo uses synthetic state only: no live machine connection, private database, or remote execution. The local OS28 tool catalog is not bundled with the public OS29 Core.
+
 ## For everyone: what OS29 actually does
 
 **Imagine an AI spends an hour investigating a problem, but the conversation ends.**
