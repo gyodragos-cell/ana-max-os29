@@ -43,7 +43,9 @@ from .work_units import WorkUnitService
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = Path(os.environ.get("OS29_DB_PATH", str(ROOT / "data" / "os29.db")))
-SCOPE_PATH = Path(os.environ.get("OS29_SCOPE_PATH", str(ROOT / "config" / "lab_scope.json")))
+SCOPE_PATH = Path(
+    os.environ.get("OS29_SCOPE_PATH", str(Path(__file__).resolve().with_name("lab_scope.json")))
+)
 PROTOCOL_VERSION = "2024-11-05"
 
 # ── Tower tools — compact lab context ────────────────────────────────────────

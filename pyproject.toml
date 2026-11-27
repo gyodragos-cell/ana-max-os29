@@ -22,6 +22,9 @@ os29-gateway = "os29.gateway:main"
 [tool.setuptools.packages.find]
 include = ["os29*"]
 
+[tool.setuptools.package-data]
+os29 = ["lab_scope.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"

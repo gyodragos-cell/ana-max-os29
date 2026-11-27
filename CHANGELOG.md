@@ -9,6 +9,11 @@
 - Security boundary and documentation; no private runtime data shipped.
 - Public Git history intentionally left intact.
 
+## Standalone wheel fix
+
+- Bundle the existing default scope policy unchanged in the installable package.
+- Verify CLI and MCP decisions from a fresh offline wheel installation outside the source tree.
+
 ## Release candidate validation
 
 - Isolated release preview workflow from production Pages.
