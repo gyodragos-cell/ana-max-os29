@@ -23,7 +23,9 @@ class FakeResponse:
         return json.dumps(self.content).encode("utf-8")
 
 
-def test_snapshot_uses_only_fixed_loopback_urls_and_updates_capabilities(tmp_path: Path, monkeypatch):
+def test_snapshot_uses_only_fixed_loopback_urls_and_updates_capabilities(
+    tmp_path: Path, monkeypatch
+):
     import os29.runtime_snapshot as module
 
     requested = []
@@ -35,7 +37,7 @@ def test_snapshot_uses_only_fixed_loopback_urls_and_updates_capabilities(tmp_pat
         return FakeResponse({"status": "online", "tools_count": 127, "mcp_ready": True})
 
     monkeypatch.setattr(module, "urlopen", fake_urlopen)
-    monkeypatch.setattr(module, "_listener_map", lambda: {})
+    monkeypatch.setattr(module, "_listener_map", dict)
     store = Store(tmp_path / "snapshot.db")
     output = snapshot_loopback(store, timeout=0.1)
     assert output["status"] == "complete"

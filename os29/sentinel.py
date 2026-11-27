@@ -3,17 +3,22 @@
 Consumes bounded snapshots and emits findings only. It never probes services,
 starts processes, calls tools, writes state, or performs repairs.
 """
+
 from __future__ import annotations
 
-from typing import Any, Mapping
-
+from collections.abc import Mapping
+from typing import Any
 
 VALID_STATUSES = {"HEALTHY", "DEGRADED", "BLOCKED", "UNKNOWN"}
 
 
 def evaluate_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(snapshot, Mapping):
-        return {"status": "UNKNOWN", "findings": ["snapshot_must_be_object"], "repair_hints": []}
+        return {
+            "status": "UNKNOWN",
+            "findings": ["snapshot_must_be_object"],
+            "repair_hints": [],
+        }
     findings: list[str] = []
     hints: list[str] = []
     services = snapshot.get("services", [])

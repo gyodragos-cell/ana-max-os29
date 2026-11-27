@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 import re
 import time
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
-from typing import Any
 
 from .redaction import redact_value
 from .retrieval import MAX_QUERY_CHARS, search_memory
@@ -22,11 +22,54 @@ MAX_MODEL_NAME_CHARS = 120
 _CITATION_RE = re.compile(r"\[(E\d+)\]")
 _MODEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$")
 _STOPWORDS = {
-    "a", "an", "and", "are", "as", "at", "be", "before", "but", "by", "can",
-    "could", "did", "do", "does", "for", "from", "how", "in", "into", "is",
-    "it", "its", "me", "of", "on", "or", "please", "show", "state", "tell",
-    "that", "the", "their", "then", "this", "to", "was", "were", "what",
-    "when", "where", "which", "while", "who", "why", "with", "would",
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "before",
+    "but",
+    "by",
+    "can",
+    "could",
+    "did",
+    "do",
+    "does",
+    "for",
+    "from",
+    "how",
+    "in",
+    "into",
+    "is",
+    "it",
+    "its",
+    "me",
+    "of",
+    "on",
+    "or",
+    "please",
+    "show",
+    "state",
+    "tell",
+    "that",
+    "the",
+    "their",
+    "then",
+    "this",
+    "to",
+    "was",
+    "were",
+    "what",
+    "when",
+    "where",
+    "which",
+    "while",
+    "who",
+    "why",
+    "with",
+    "would",
 }
 
 
@@ -43,7 +86,8 @@ def _derive_retrieval_query(question: str) -> str:
     # Identifiers, long technical terms and numbers distinguish code/document issues
     # from conversational filler; keep a bounded query for BM25.
     priority = [
-        token for token in unique
+        token
+        for token in unique
         if "_" in token or any(char.isdigit() for char in token) or len(token) >= 7
     ]
     rest = [token for token in unique if token not in set(priority)]
@@ -65,7 +109,9 @@ def _validate_ollama_url(value: str) -> str:
         or parsed.query
         or parsed.fragment
     ):
-        raise ValueError("Local inference accepts only an HTTP loopback endpoint on port 11434")
+        raise ValueError(
+            "Local inference accepts only an HTTP loopback endpoint on port 11434"
+        )
     return f"http://{parsed.hostname}:11434"
 
 
@@ -107,7 +153,9 @@ def _select_evidence_window(body: str, query: str, limit: int) -> str:
         window = lowered[start : start + limit]
         matched = [term for term in terms if term in window]
         weighted = sum(
-            3 if "_" in term or any(char.isdigit() for char in term) or len(term) >= 8 else 1
+            3
+            if "_" in term or any(char.isdigit() for char in term) or len(term) >= 8
+            else 1
             for term in matched
         )
         positions = [window.find(term) for term in matched]
@@ -117,10 +165,19 @@ def _select_evidence_window(body: str, query: str, limit: int) -> str:
     best_start = max(candidate_starts, key=score)
     return body[best_start : best_start + limit]
 
-def _load_evidence_bodies(store: Store, results: list[dict[str, Any]], *, query: str = "", context_budget: int = MAX_CONTEXT_CHARS) -> list[dict[str, Any]]:
+
+def _load_evidence_bodies(
+    store: Store,
+    results: list[dict[str, Any]],
+    *,
+    query: str = "",
+    context_budget: int = MAX_CONTEXT_CHARS,
+) -> list[dict[str, Any]]:
     if not results:
         return []
-    ids = [str(item["doc_id"]) for item in results if isinstance(item.get("doc_id"), str)]
+    ids = [
+        str(item["doc_id"]) for item in results if isinstance(item.get("doc_id"), str)
+    ]
     if not ids:
         return []
     placeholders = ",".join("?" for _ in ids)
@@ -198,7 +255,9 @@ def _call_ollama(
         raise ValueError(f"Local Ollama inference returned HTTP {exc.code}") from None
     except (URLError, TimeoutError, OSError) as exc:
         # Report the local endpoint failure without echoing request prompts or response bodies.
-        raise ValueError(f"Local Ollama inference failed: {type(exc).__name__}") from None
+        raise ValueError(
+            f"Local Ollama inference failed: {type(exc).__name__}"
+        ) from None
     if len(raw) > MAX_RESPONSE_BYTES:
         raise ValueError("Local Ollama response exceeded the 128 KiB response limit")
     try:
@@ -237,19 +296,37 @@ def answer_from_memory(
         raise ValueError("question must be a non-empty string")
     if len(query) > MAX_QUERY_CHARS:
         raise ValueError(f"question cannot exceed {MAX_QUERY_CHARS} characters")
-    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_EVIDENCE_ITEMS:
+    if (
+        isinstance(limit, bool)
+        or not isinstance(limit, int)
+        or not 1 <= limit <= MAX_EVIDENCE_ITEMS
+    ):
         raise ValueError(f"limit must be between 1 and {MAX_EVIDENCE_ITEMS}")
-    if not isinstance(timeout_seconds, (int, float)) or isinstance(timeout_seconds, bool) or not 1 <= timeout_seconds <= 90:
+    if (
+        not isinstance(timeout_seconds, (int, float))
+        or isinstance(timeout_seconds, bool)
+        or not 1 <= timeout_seconds <= 90
+    ):
         raise ValueError("timeout must be between 1 and 90 seconds")
-    if isinstance(num_ctx, bool) or not isinstance(num_ctx, int) or not 512 <= num_ctx <= 4096:
+    if (
+        isinstance(num_ctx, bool)
+        or not isinstance(num_ctx, int)
+        or not 512 <= num_ctx <= 4096
+    ):
         raise ValueError("num_ctx must be between 512 and 4096")
-    if isinstance(num_predict, bool) or not isinstance(num_predict, int) or not 16 <= num_predict <= 512:
+    if (
+        isinstance(num_predict, bool)
+        or not isinstance(num_predict, int)
+        or not 16 <= num_predict <= 512
+    ):
         raise ValueError("num_predict must be between 16 and 512")
 
     endpoint = _validate_ollama_url(ollama_url)
     model_name = _validate_model_name(model)
     selected_types = list(source_types or [])
-    selected_retrieval_query = (retrieval_query or "").strip() or _derive_retrieval_query(query)
+    selected_retrieval_query = (
+        retrieval_query or ""
+    ).strip() or _derive_retrieval_query(query)
     if len(selected_retrieval_query) > MAX_QUERY_CHARS:
         raise ValueError(f"retrieval_query cannot exceed {MAX_QUERY_CHARS} characters")
     retrieved = search_memory(
@@ -263,7 +340,12 @@ def answer_from_memory(
     # Reserve model context for system instructions, question, JSON framing and output.
     # Roughly two evidence characters per context token is conservative for JSON/technical text.
     evidence_budget = min(MAX_CONTEXT_CHARS, max(800, (num_ctx - 700) * 2))
-    evidence = _load_evidence_bodies(store, retrieved["results"], query=selected_retrieval_query, context_budget=evidence_budget)
+    evidence = _load_evidence_bodies(
+        store,
+        retrieved["results"],
+        query=selected_retrieval_query,
+        context_budget=evidence_budget,
+    )
     citation_map = {
         item["citation"]: {
             "doc_id": item["doc_id"],
@@ -346,7 +428,9 @@ def answer_from_memory(
     try:
         structured = json.loads(result["answer"])
     except json.JSONDecodeError:
-        raise ValueError("Local model failed the required structured-answer JSON contract") from None
+        raise ValueError(
+            "Local model failed the required structured-answer JSON contract"
+        ) from None
     if (
         not isinstance(structured, dict)
         or not isinstance(structured.get("answer"), str)
@@ -354,7 +438,9 @@ def answer_from_memory(
         or not isinstance(structured.get("insufficient_evidence"), bool)
         or any(not isinstance(item, str) for item in structured.get("citations", []))
     ):
-        raise ValueError("Local model answer did not match the structured-answer contract")
+        raise ValueError(
+            "Local model answer did not match the structured-answer contract"
+        )
     answer_text = structured["answer"].strip()
     if not answer_text or len(answer_text) > 12000:
         raise ValueError("Local model produced an empty or oversized answer")
@@ -372,7 +458,9 @@ def answer_from_memory(
     else:
         answer_status = "needs_review"
     if valid_citations and not inline:
-        answer_text += "\n\nSources: " + ", ".join(f"[{item}]" for item in valid_citations)
+        answer_text += "\n\nSources: " + ", ".join(
+            f"[{item}]" for item in valid_citations
+        )
 
     return {
         "answer_status": answer_status,

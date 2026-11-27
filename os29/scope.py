@@ -15,16 +15,23 @@ class ScopePolicy:
         if data.get("schema_version") != "os29.scope.v1":
             raise ValueError("unsupported scope schema")
         self.data = data
-        self.approved_hosts = {str(x).strip().lower().rstrip(".") for x in data.get("approved_hosts", [])}
+        self.approved_hosts = {
+            str(x).strip().lower().rstrip(".") for x in data.get("approved_hosts", [])
+        }
         self.approved_ports = {int(x) for x in data.get("approved_ports", [])}
         self.approved_networks = [
-            ipaddress.ip_network(str(x), strict=False) for x in data.get("approved_networks", [])
+            ipaddress.ip_network(str(x), strict=False)
+            for x in data.get("approved_networks", [])
         ]
         self.approved_device_ids = {
-            str(x).strip() for x in data.get("approved_device_ids", []) if str(x).strip()
+            str(x).strip()
+            for x in data.get("approved_device_ids", [])
+            if str(x).strip()
         }
         self.approved_process_names = {
-            str(x).strip().lower() for x in data.get("approved_process_names", []) if str(x).strip()
+            str(x).strip().lower()
+            for x in data.get("approved_process_names", [])
+            if str(x).strip()
         }
 
     def check_device(self, device_id: str) -> dict[str, object]:
@@ -33,7 +40,11 @@ class ScopePolicy:
             return {"allowed": False, "reason": "missing_device_id"}
         if requested not in self.approved_device_ids:
             return {"allowed": False, "reason": "device_not_explicitly_approved"}
-        return {"allowed": True, "reason": "explicit_device_match", "device_id": requested}
+        return {
+            "allowed": True,
+            "reason": "explicit_device_match",
+            "device_id": requested,
+        }
 
     def check_target(self, target: str) -> dict[str, object]:
         try:
@@ -53,13 +64,25 @@ class ScopePolicy:
             if not host_allowed:
                 try:
                     address = ipaddress.ip_address(host)
-                    host_allowed = any(address in network for network in self.approved_networks)
+                    host_allowed = any(
+                        address in network for network in self.approved_networks
+                    )
                 except ValueError:
                     host_allowed = False
             if not host_allowed:
-                return {"allowed": False, "reason": "host_not_in_scope", "host": host, "port": port}
+                return {
+                    "allowed": False,
+                    "reason": "host_not_in_scope",
+                    "host": host,
+                    "port": port,
+                }
             if self.approved_ports and port not in self.approved_ports:
-                return {"allowed": False, "reason": "port_not_in_scope", "host": host, "port": port}
+                return {
+                    "allowed": False,
+                    "reason": "port_not_in_scope",
+                    "host": host,
+                    "port": port,
+                }
             return {
                 "allowed": True,
                 "reason": "explicit_local_scope_match",
@@ -75,5 +98,9 @@ class ScopePolicy:
         if not name:
             return {"allowed": False, "reason": "missing_process_name"}
         if name not in self.approved_process_names:
-            return {"allowed": False, "reason": "process_not_explicitly_approved", "process": name}
+            return {
+                "allowed": False,
+                "reason": "process_not_explicitly_approved",
+                "process": name,
+            }
         return {"allowed": True, "reason": "explicit_process_match", "process": name}

@@ -1,0 +1,31 @@
+{
+  "seed": 42,
+  "n_episodes": 500,
+  "n_queries": 100,
+  "results": [
+    {
+      "method": "Baseline-1 (Python dict+LIKE)",
+      "p50_ms": 0.0924,
+      "p95_ms": 0.0961,
+      "p99_ms": 0.1377,
+      "recall_at_5_pct": 70.0,
+      "mrr": 0.3655
+    },
+    {
+      "method": "Baseline-2 (regex full-scan)",
+      "p50_ms": 0.3905,
+      "p95_ms": 0.7153,
+      "p99_ms": 0.9636,
+      "recall_at_5_pct": 70.0,
+      "mrr": 0.3655
+    },
+    {
+      "method": "OS29 FTS5/BM25 (WAL)",
+      "p50_ms": 0.0613,
+      "p95_ms": 0.0918,
+      "p99_ms": 0.1973,
+      "recall_at_5_pct": 70.0,
+      "mrr": 0.3197
+    }
+  ]
+}

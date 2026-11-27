@@ -40,7 +40,9 @@ def diagnose_trace(store: Store, trace_id: str) -> dict[str, Any]:
     events = store.list_trace(trace_id)
     if not events:
         raise ValueError(f"trace not found: {trace_id}")
-    failures = [event for event in events if event.get("outcome") in {"failure", "error"}]
+    failures = [
+        event for event in events if event.get("outcome") in {"failure", "error"}
+    ]
     by_id = {event["event_id"]: event for event in events}
     components = [event.get("component", "unknown") for event in events]
     summary = store.trace_summary(trace_id)
@@ -68,7 +70,8 @@ def diagnose_trace(store: Store, trace_id: str) -> dict[str, Any]:
         "root_cause": None,
         "hypothesis": (
             "Failure events are observed. Parent links show event lineage, not necessarily causation; independent reproduction or additional evidence is required."
-            if failures else "No explicit failure/error outcome is recorded in this trace."
+            if failures
+            else "No explicit failure/error outcome is recorded in this trace."
         ),
         "incident": incident,
         "correlation_basis": summary["correlation_basis"],

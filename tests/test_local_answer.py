@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-import os29.local_answer as local_answer
+from os29 import local_answer
 from os29.cli import build_parser
 from os29.local_answer import answer_from_memory
 from os29.store import Store
@@ -21,15 +21,17 @@ def _store_with_approved_doc(tmp_path: Path, content: str) -> tuple[Store, Path]
     source = docs_dir / "approved-evidence.md"
     source.write_text(content, encoding="utf-8")
     (config_dir / "memory_sources.json").write_text(
-        json.dumps({
-            "files": [str(source)],
-            "directories": [],
-            "limits": {
-                "max_file_bytes": 524288,
-                "max_total_source_bytes": 8388608,
-                "max_files": 200,
-            },
-        }),
+        json.dumps(
+            {
+                "files": [str(source)],
+                "directories": [],
+                "limits": {
+                    "max_file_bytes": 524288,
+                    "max_total_source_bytes": 8388608,
+                    "max_files": 200,
+                },
+            }
+        ),
         encoding="utf-8",
     )
     return Store(tmp_path / "os29.db"), source.resolve()
@@ -46,15 +48,21 @@ def _response(
         "citations": ["E1"] if citations is None else citations,
         "insufficient_evidence": insufficient_evidence,
     }
-    return io.BytesIO(json.dumps({
-        "response": json.dumps(structured, ensure_ascii=False),
-        "total_duration": 123456,
-        "prompt_eval_count": 91,
-        "eval_count": 14,
-    }).encode("utf-8"))
+    return io.BytesIO(
+        json.dumps(
+            {
+                "response": json.dumps(structured, ensure_ascii=False),
+                "total_duration": 123456,
+                "prompt_eval_count": 91,
+                "eval_count": 14,
+            }
+        ).encode("utf-8")
+    )
 
 
-def test_local_answer_uses_approved_evidence_and_validates_citation(tmp_path, monkeypatch):
+def test_local_answer_uses_approved_evidence_and_validates_citation(
+    tmp_path, monkeypatch
+):
     secret = "password=fixture-secret-never-send-7d2c"
     store, source = _store_with_approved_doc(
         tmp_path,
@@ -67,7 +75,9 @@ def test_local_answer_uses_approved_evidence_and_validates_citation(tmp_path, mo
         captured["url"] = request.full_url
         captured["timeout"] = timeout
         captured["payload"] = json.loads(request.data.decode("utf-8"))
-        return _response("The operator-local-full gateway exposes 139 tools.", citations=["E1"])
+        return _response(
+            "The operator-local-full gateway exposes 139 tools.", citations=["E1"]
+        )
 
     monkeypatch.setattr(local_answer, "urlopen", fake_urlopen)
     result = answer_from_memory(
@@ -89,14 +99,23 @@ def test_local_answer_uses_approved_evidence_and_validates_citation(tmp_path, mo
     assert result["retrieval"]["semantic_embeddings_enabled"] is False
     assert result["keep_alive_seconds"] == 0
     assert "[E1]" in result["answer"]
-    assert result["retrieval"]["retrieval_query"] == "operator-local-full gateway 139 tools"
+    assert (
+        result["retrieval"]["retrieval_query"]
+        == "operator-local-full gateway 139 tools"
+    )
     assert captured["url"] == "http://127.0.0.1:11434/api/generate"
     assert captured["timeout"] == 5
     assert captured["payload"]["model"] == "qwen2.5-coder:3b"
     assert captured["payload"]["stream"] is False
     assert captured["payload"]["keep_alive"] == 0
-    assert captured["payload"]["format"]["properties"]["citations"]["items"]["enum"] == ["E1"]
-    assert captured["payload"]["format"]["required"] == ["answer", "citations", "insufficient_evidence"]
+    assert captured["payload"]["format"]["properties"]["citations"]["items"][
+        "enum"
+    ] == ["E1"]
+    assert captured["payload"]["format"]["required"] == [
+        "answer",
+        "citations",
+        "insufficient_evidence",
+    ]
     assert "139 tools" in captured["payload"]["prompt"]
     assert secret not in captured["payload"]["prompt"]
     assert secret not in json.dumps(result, ensure_ascii=False)
@@ -110,7 +129,9 @@ def test_local_answer_flags_unknown_citation_for_review(tmp_path, monkeypatch):
     monkeypatch.setattr(
         local_answer,
         "urlopen",
-        lambda *_args, **_kwargs: _response("The endpoint returned HTTP 200.", citations=["E99"]),
+        lambda *_args, **_kwargs: _response(
+            "The endpoint returned HTTP 200.", citations=["E99"]
+        ),
     )
 
     result = answer_from_memory(
@@ -147,7 +168,9 @@ def test_local_answer_requires_citations_for_grounded_status(tmp_path, monkeypat
     assert result["cited_ids"] == []
 
 
-def test_local_answer_reports_insufficient_evidence_without_calling_model(tmp_path, monkeypatch):
+def test_local_answer_reports_insufficient_evidence_without_calling_model(
+    tmp_path, monkeypatch
+):
     store = Store(tmp_path / "empty.db")
     called = False
 
@@ -169,7 +192,9 @@ def test_local_answer_refuses_non_loopback_model_endpoints(tmp_path, monkeypatch
     store = Store(tmp_path / "empty.db")
 
     def should_not_call(*_args, **_kwargs):
-        raise AssertionError("The network layer must not be reached for a non-loopback URL.")
+        raise AssertionError(
+            "The network layer must not be reached for a non-loopback URL."
+        )
 
     monkeypatch.setattr(local_answer, "urlopen", should_not_call)
     with pytest.raises(ValueError, match="loopback endpoint"):
@@ -182,17 +207,26 @@ def test_local_answer_refuses_non_loopback_model_endpoints(tmp_path, monkeypatch
 
 
 def test_memory_answer_cli_is_explicit_and_bounded():
-    args = build_parser().parse_args([
-        "memory-answer",
-        "OS28 gateway tool catalog",
-        "--model", "qwen2.5-coder:3b",
-        "--limit", "3",
-        "--timeout", "10",
-        "--num-ctx", "1024",
-        "--num-predict", "64",
-        "--source-type", "document",
-        "--retrieve-query", "gateway 139 tools",
-    ])
+    args = build_parser().parse_args(
+        [
+            "memory-answer",
+            "OS28 gateway tool catalog",
+            "--model",
+            "qwen2.5-coder:3b",
+            "--limit",
+            "3",
+            "--timeout",
+            "10",
+            "--num-ctx",
+            "1024",
+            "--num-predict",
+            "64",
+            "--source-type",
+            "document",
+            "--retrieve-query",
+            "gateway 139 tools",
+        ]
+    )
     assert args.command == "memory-answer"
     assert args.query == "OS28 gateway tool catalog"
     assert args.model == "qwen2.5-coder:3b"
@@ -204,17 +238,27 @@ def test_memory_answer_cli_is_explicit_and_bounded():
     assert args.retrieve_query == "gateway 139 tools"
 
 
-def test_local_answer_selects_query_matched_window_from_long_evidence(tmp_path, monkeypatch):
+def test_local_answer_selects_query_matched_window_from_long_evidence(
+    tmp_path, monkeypatch
+):
     test_id = "test_local_document_index_preserves_content_past_2000_chars_and_redacts_late_secrets"
     secret = "password=fixture-secret-never-send-context-window-91ea"
     decoy = "UNIQUE_DECOY_START_ONLY_NOT_CONTEXT "
-    filler = ("Unrelated older notes about code_search and max_results do not answer this question. " * 75)
+    filler = (
+        "Unrelated older notes about code_search and max_results do not answer this question. "
+        * 75
+    )
     content = (
-        "# Mixed evidence\n\n" + decoy + filler
+        "# Mixed evidence\n\n"
+        + decoy
+        + filler
         + "\n\n## Retrieval repair\n"
         + "In os29/retrieval.py, _text now calls redact_value(value, max_length=max_chars). "
-        + "Regression test: " + test_id + ". It proves a marker after character 2000 is retrievable "
-        + "while a late password-like value remains absent from the memory index. " + secret
+        + "Regression test: "
+        + test_id
+        + ". It proves a marker after character 2000 is retrievable "
+        + "while a late password-like value remains absent from the memory index. "
+        + secret
     )
     probe = local_answer._select_evidence_window(
         content, f"redact_value max_length=max_chars {test_id}", 2200
@@ -226,7 +270,10 @@ def test_local_answer_selects_query_matched_window_from_long_evidence(tmp_path, 
 
     def fake_urlopen(request, timeout):
         captured["payload"] = json.loads(request.data.decode("utf-8"))
-        return _response("The retrieval fix is covered by the long-document redaction regression.", citations=["E1"])
+        return _response(
+            "The retrieval fix is covered by the long-document redaction regression.",
+            citations=["E1"],
+        )
 
     monkeypatch.setattr(local_answer, "urlopen", fake_urlopen)
     result = answer_from_memory(
@@ -245,4 +292,6 @@ def test_local_answer_selects_query_matched_window_from_long_evidence(tmp_path, 
     assert "late password-like value remains absent from the memory index" in prompt
     assert decoy not in prompt
     assert "fixture-secret-never-send-context-window-91ea" not in prompt
-    assert "fixture-secret-never-send-context-window-91ea" not in json.dumps(result, ensure_ascii=False)
+    assert "fixture-secret-never-send-context-window-91ea" not in json.dumps(
+        result, ensure_ascii=False
+    )

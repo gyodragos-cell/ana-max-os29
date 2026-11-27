@@ -3,11 +3,13 @@
 The adapter accepts caller-provided records and bounded JSON files only. It never
 opens network connections, calls MCP/tools, writes files, or touches the OS29 DB.
 """
+
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from .anti_repeat import evaluate
 
@@ -25,13 +27,29 @@ def evaluate_json_file(path: str | Path, max_bytes: int = 256_000) -> dict[str, 
     """
     candidate = Path(path)
     if not candidate.is_file():
-        return {"status": "REQUIRES_REVIEW", "current_blocker": "fixture_not_found", "next_action": "provide an existing JSON fixture"}
+        return {
+            "status": "REQUIRES_REVIEW",
+            "current_blocker": "fixture_not_found",
+            "next_action": "provide an existing JSON fixture",
+        }
     if candidate.stat().st_size > max_bytes:
-        return {"status": "REQUIRES_REVIEW", "current_blocker": "fixture_too_large", "next_action": "provide a bounded fixture"}
+        return {
+            "status": "REQUIRES_REVIEW",
+            "current_blocker": "fixture_too_large",
+            "next_action": "provide a bounded fixture",
+        }
     try:
         record = json.loads(candidate.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        return {"status": "REQUIRES_REVIEW", "current_blocker": f"fixture_invalid:{type(exc).__name__}", "next_action": "repair fixture JSON"}
+        return {
+            "status": "REQUIRES_REVIEW",
+            "current_blocker": f"fixture_invalid:{type(exc).__name__}",
+            "next_action": "repair fixture JSON",
+        }
     if not isinstance(record, dict):
-        return {"status": "REQUIRES_REVIEW", "current_blocker": "fixture_must_be_object", "next_action": "provide an object fixture"}
+        return {
+            "status": "REQUIRES_REVIEW",
+            "current_blocker": "fixture_must_be_object",
+            "next_action": "provide an object fixture",
+        }
     return evaluate(record)

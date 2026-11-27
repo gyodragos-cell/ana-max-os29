@@ -24,6 +24,7 @@ def terminal_exec(
                   calling MCP tool call instead of creating an isolated trace.
     """
     import time as _time
+
     cmd_str = str(command).strip()
     if not cmd_str:
         return {"exit_code": 1, "stdout": "", "stderr": "empty command"}
@@ -48,54 +49,73 @@ def terminal_exec(
         )
         duration_ms = (_time.perf_counter() - _t0) * 1000
         res = {
-            "exit_code":   proc.returncode,
-            "stdout":      proc.stdout or "",
-            "stderr":      proc.stderr or "",
-            "cwd":         str(work_dir),
+            "exit_code": proc.returncode,
+            "stdout": proc.stdout or "",
+            "stderr": proc.stderr or "",
+            "cwd": str(work_dir),
             "duration_ms": round(duration_ms, 1),
         }
         if store:
             effective_trace_id = trace_id or f"term-{new_id()}"
-            store.record_event(TraceEvent(
-                trace_id=effective_trace_id,
-                source="os29.terminal",
-                component="terminal_exec",
-                kind="exec.command",
-                action=cmd_str[:128],
-                outcome="success" if proc.returncode == 0 else "failure",
-                duration_ms=duration_ms,
-                attributes={"exit_code": proc.returncode, "stdout_len": len(res["stdout"])},
-            ))
+            store.record_event(
+                TraceEvent(
+                    trace_id=effective_trace_id,
+                    source="os29.terminal",
+                    component="terminal_exec",
+                    kind="exec.command",
+                    action=cmd_str[:128],
+                    outcome="success" if proc.returncode == 0 else "failure",
+                    duration_ms=duration_ms,
+                    attributes={
+                        "exit_code": proc.returncode,
+                        "stdout_len": len(proc.stdout or ""),
+                    },
+                )
+            )
         return res
     except subprocess.TimeoutExpired:
         if store:
             effective_trace_id = trace_id or f"term-{new_id()}"
-            store.record_event(TraceEvent(
-                trace_id=effective_trace_id,
-                source="os29.terminal",
-                component="terminal_exec",
-                kind="exec.command",
-                action=cmd_str[:128],
-                outcome="failure",
-                attributes={"exit_code": -1, "reason": "timeout", "timeout_seconds": timeout_seconds},
-            ))
-        return {"exit_code": -1, "stdout": "", "stderr": f"command timed out after {timeout_seconds}s"}
+            store.record_event(
+                TraceEvent(
+                    trace_id=effective_trace_id,
+                    source="os29.terminal",
+                    component="terminal_exec",
+                    kind="exec.command",
+                    action=cmd_str[:128],
+                    outcome="failure",
+                    attributes={
+                        "exit_code": -1,
+                        "reason": "timeout",
+                        "timeout_seconds": timeout_seconds,
+                    },
+                )
+            )
+        return {
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": f"command timed out after {timeout_seconds}s",
+        }
     except Exception as exc:
         if store:
             effective_trace_id = trace_id or f"term-{new_id()}"
-            store.record_event(TraceEvent(
-                trace_id=effective_trace_id,
-                source="os29.terminal",
-                component="terminal_exec",
-                kind="exec.command",
-                action=cmd_str[:128],
-                outcome="error",
-                attributes={"exit_code": -1, "exc_type": type(exc).__name__},
-            ))
+            store.record_event(
+                TraceEvent(
+                    trace_id=effective_trace_id,
+                    source="os29.terminal",
+                    component="terminal_exec",
+                    kind="exec.command",
+                    action=cmd_str[:128],
+                    outcome="error",
+                    attributes={"exit_code": -1, "exc_type": type(exc).__name__},
+                )
+            )
         return {"exit_code": -1, "stdout": "", "stderr": str(exc)}
 
 
-def file_read(path: str, start_line: int | None = None, end_line: int | None = None) -> dict[str, Any]:
+def file_read(
+    path: str, start_line: int | None = None, end_line: int | None = None
+) -> dict[str, Any]:
     target = Path(path).resolve()
     if not target.is_file():
         raise FileNotFoundError(f"file not found: {path}")
@@ -127,7 +147,12 @@ def file_write(path: str, content: str, overwrite: bool = True) -> dict[str, Any
     }
 
 
-def code_search(pattern: str, search_path: str | None = None, max_results: int = 50, case_sensitive: bool = False) -> dict[str, Any]:
+def code_search(
+    pattern: str,
+    search_path: str | None = None,
+    max_results: int = 50,
+    case_sensitive: bool = False,
+) -> dict[str, Any]:
     root = Path(search_path).resolve() if search_path else Path.cwd()
     if not root.is_dir():
         raise NotADirectoryError(f"search path is not a directory: {search_path}")
@@ -137,16 +162,23 @@ def code_search(pattern: str, search_path: str | None = None, max_results: int =
     for p in root.rglob("*"):
         if not p.is_file():
             continue
-        if any(part in {".git", ".pytest_cache", "__pycache__", "venv", "node_modules"} for part in p.parts):
+        if any(
+            part in {".git", ".pytest_cache", "__pycache__", "venv", "node_modules"}
+            for part in p.parts
+        ):
             continue
         try:
-            for idx, line in enumerate(p.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1):
+            for idx, line in enumerate(
+                p.read_text(encoding="utf-8", errors="ignore").splitlines(), start=1
+            ):
                 if regex.search(line):
-                    matches.append({
-                        "file": str(p),
-                        "line": idx,
-                        "text": line[:250].strip(),
-                    })
+                    matches.append(
+                        {
+                            "file": str(p),
+                            "line": idx,
+                            "text": line[:250].strip(),
+                        }
+                    )
                     if len(matches) >= int(max_results):
                         break
         except Exception:

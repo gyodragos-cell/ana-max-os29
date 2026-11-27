@@ -8,10 +8,10 @@ Verifica:
   T5 - pruning: backup_count respectat dupa rotatie frecventa
   T6 - log_shutdown nu opreste OS29 (procesul MCP ramane independent de LIVE_CONSOLE)
 """
+
 from __future__ import annotations
 
 import logging
-import os
 import threading
 import time
 from pathlib import Path
@@ -20,10 +20,10 @@ import pytest
 
 from os29.telemetry import _AppendRotatingHandler
 
-
 # ---------------------------------------------------------------------------
 # Factory helper — always isolated, never shares state with other tests
 # ---------------------------------------------------------------------------
+
 
 def _handler(tmp_path: Path, max_bytes: int = 5_000_000, backup_count: int = 3):
     log = tmp_path / "live_session.log"
@@ -44,6 +44,7 @@ def _arch(log: Path) -> Path:
 # ---------------------------------------------------------------------------
 # T1: continuous write while a reader holds the file open (no PermissionError)
 # ---------------------------------------------------------------------------
+
 
 def test_t1_write_while_reader_open(tmp_path):
     h, log = _handler(tmp_path, max_bytes=2_000)
@@ -88,6 +89,7 @@ def test_t1_write_while_reader_open(tmp_path):
 # T2: archive_session() archives content, truncates active file
 # ---------------------------------------------------------------------------
 
+
 def test_t2_archive_session_explicit(tmp_path):
     h, log = _handler(tmp_path)
 
@@ -120,6 +122,7 @@ def test_t2_archive_session_explicit(tmp_path):
 # T3: restart archives previous session before the new startup banner
 # ---------------------------------------------------------------------------
 
+
 def test_t3_restart_archives_previous_session(tmp_path):
     """Simulates a new OS29 process starting while live_session.log has
     leftover content from the previous (crashed/stopped) run."""
@@ -142,13 +145,17 @@ def test_t3_restart_archives_previous_session(tmp_path):
     archives_after = {a.name for a in arch.glob("*.log")}
     new_archives = archives_after - archives_before
 
-    assert archived is not None, "archive_session returned None for non-empty previous session"
+    assert archived is not None, (
+        "archive_session returned None for non-empty previous session"
+    )
     assert new_archives, "No new archive created for previous session"
 
     all_text = "".join(
         (arch / n).read_text(encoding="utf-8", errors="replace") for n in archives_after
     )
-    assert "CRASHED SESSION DATA" in all_text, "Previous session content missing from archive"
+    assert "CRASHED SESSION DATA" in all_text, (
+        "Previous session content missing from archive"
+    )
     assert "previous-session" in all_text, "Reason marker missing from archive"
 
     h.close()
@@ -157,6 +164,7 @@ def test_t3_restart_archives_previous_session(tmp_path):
 # ---------------------------------------------------------------------------
 # T4: log_shutdown emits marker, archives, leaves no orphan handle
 # ---------------------------------------------------------------------------
+
 
 def test_t4_shutdown_archives_and_no_orphan(tmp_path):
     h, log = _handler(tmp_path)
@@ -182,7 +190,9 @@ def test_t4_shutdown_archives_and_no_orphan(tmp_path):
     assert archived is not None, "archive_session returned None after shutdown write"
     assert new_archives, "log_shutdown sequence did not create an archive"
 
-    archive_text = (arch / list(new_archives)[0]).read_text(encoding="utf-8", errors="replace")
+    archive_text = (arch / list(new_archives)[0]).read_text(
+        encoding="utf-8", errors="replace"
+    )
     assert "SHUTDOWN" in archive_text, "Shutdown marker missing from archive"
 
     # No orphan handle: file must be writable/deletable after close()
@@ -195,6 +205,7 @@ def test_t4_shutdown_archives_and_no_orphan(tmp_path):
 # ---------------------------------------------------------------------------
 # T5: backup_count prunes old archives
 # ---------------------------------------------------------------------------
+
 
 def test_t5_pruning_respects_backup_count(tmp_path):
     h, log = _handler(tmp_path, max_bytes=200, backup_count=2)
@@ -218,6 +229,7 @@ def test_t5_pruning_respects_backup_count(tmp_path):
 # ---------------------------------------------------------------------------
 # T6: closing the reader (LIVE_CONSOLE) does not affect the writer
 # ---------------------------------------------------------------------------
+
 
 def test_t6_closing_reader_does_not_affect_writer(tmp_path):
     h, log = _handler(tmp_path)
@@ -246,9 +258,7 @@ def test_t6_closing_reader_does_not_affect_writer(tmp_path):
 
     assert not write_errors, f"Writer failed after reader close: {write_errors}"
     archives = list(_arch(log).glob("*.log"))
-    total_content = sum(
-        p.stat().st_size for p in [log] + archives if p.exists()
-    )
+    total_content = sum(p.stat().st_size for p in [log] + archives if p.exists())
     assert total_content > 0, "No content in log or archives after writer ran"
 
 
@@ -256,10 +266,13 @@ def test_t6_closing_reader_does_not_affect_writer(tmp_path):
 # T7: module-level lifecycle with reload (verifies stale handlers replaced)
 # ---------------------------------------------------------------------------
 
+
 def test_t7_module_level_startup_shutdown_reload(tmp_path, monkeypatch):
     import importlib
+
     monkeypatch.setenv("OS29_LOG_DIR", str(tmp_path))
     import os29.telemetry as tel
+
     tel = importlib.reload(tel)
 
     assert tel.SESSION_LOG == tmp_path / "live_session.log"

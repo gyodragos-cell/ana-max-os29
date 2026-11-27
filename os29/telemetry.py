@@ -35,14 +35,12 @@ import logging
 import logging.handlers
 import os
 import re
-import shutil
 import sys
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
-
+from typing import TYPE_CHECKING, Any, TextIO
 
 # ---------------------------------------------------------------------------
 # ANSI colours — stripped automatically when stderr is not a TTY
@@ -50,21 +48,21 @@ from typing import Any
 _TTY = hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
 
 _C: dict[str, str] = {
-    "reset":   "\033[0m"  if _TTY else "",
-    "grey":    "\033[90m" if _TTY else "",
-    "green":   "\033[92m" if _TTY else "",
-    "yellow":  "\033[93m" if _TTY else "",
-    "red":     "\033[91m" if _TTY else "",
-    "cyan":    "\033[96m" if _TTY else "",
-    "bold":    "\033[1m"  if _TTY else "",
+    "reset": "\033[0m" if _TTY else "",
+    "grey": "\033[90m" if _TTY else "",
+    "green": "\033[92m" if _TTY else "",
+    "yellow": "\033[93m" if _TTY else "",
+    "red": "\033[91m" if _TTY else "",
+    "cyan": "\033[96m" if _TTY else "",
+    "bold": "\033[1m" if _TTY else "",
 }
 
 _OUTCOME_COLOR: dict[str, str] = {
-    "success":  _C["green"],
-    "failure":  _C["red"],
-    "error":    _C["red"],
-    "blocked":  _C["yellow"],
-    "unknown":  _C["grey"],
+    "success": _C["green"],
+    "failure": _C["red"],
+    "error": _C["red"],
+    "blocked": _C["yellow"],
+    "unknown": _C["grey"],
     "observed": _C["cyan"],
 }
 
@@ -77,15 +75,15 @@ _SECRET_FRAGMENT = re.compile(
 # ---------------------------------------------------------------------------
 # Paths and size limits
 # ---------------------------------------------------------------------------
-_ROOT    = Path(__file__).resolve().parents[1]
+_ROOT = Path(__file__).resolve().parents[1]
 _LOG_DIR = Path(os.environ.get("OS29_LOG_DIR", str(_ROOT / "logs")))
 _LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-SESSION_LOG   = _LOG_DIR / "live_session.log"
-ARCHIVE_DIR   = _LOG_DIR / "archive"
+SESSION_LOG = _LOG_DIR / "live_session.log"
+ARCHIVE_DIR = _LOG_DIR / "archive"
 
 # Maximum active-file size before a copy-truncate rotation is triggered.
-_MAX_BYTES    = int(os.environ.get("OS29_LOG_MAX_BYTES",    str(5 * 1024 * 1024)))
+_MAX_BYTES = int(os.environ.get("OS29_LOG_MAX_BYTES", str(5 * 1024 * 1024)))
 # Number of dated archive files to keep.
 _BACKUP_COUNT = int(os.environ.get("OS29_LOG_BACKUP_COUNT", "7"))
 
@@ -94,7 +92,13 @@ _BACKUP_COUNT = int(os.environ.get("OS29_LOG_BACKUP_COUNT", "7"))
 # _AppendRotatingHandler — Windows-safe copy-truncate log rotation
 # ---------------------------------------------------------------------------
 
-class _AppendRotatingHandler(logging.StreamHandler):
+if TYPE_CHECKING:
+    _StreamHandlerBase = logging.StreamHandler[TextIO]
+else:
+    _StreamHandlerBase = logging.StreamHandler
+
+
+class _AppendRotatingHandler(_StreamHandlerBase):
     """Rotating file logger that never renames the active log file.
 
     The active log (SESSION_LOG) is always the same path.  When it exceeds
@@ -118,12 +122,12 @@ class _AppendRotatingHandler(logging.StreamHandler):
         backup_count: int = 7,
         encoding: str = "utf-8",
     ) -> None:
-        self._path         = path
-        self._max_bytes    = max_bytes
+        self._path = path
+        self._max_bytes = max_bytes
         self._backup_count = backup_count
-        self._encoding     = encoding
-        self._lock         = threading.Lock()
-        self._archive_dir  = path.parent / "archive"
+        self._encoding = encoding
+        self._lock = threading.Lock()
+        self._archive_dir = path.parent / "archive"
         self._archive_dir.mkdir(parents=True, exist_ok=True)
         # Open in append mode.  'a' on Windows creates the file if missing and
         # does NOT hold an exclusive lock — other processes can read freely.
@@ -132,7 +136,7 @@ class _AppendRotatingHandler(logging.StreamHandler):
 
     # -- stream management ---------------------------------------------------
 
-    def _open(self):                                    # noqa: ANN001
+    def _open(self) -> TextIO:
         return open(self._path, "a", encoding=self._encoding, errors="replace")
 
     def _current_size(self) -> int:
@@ -196,7 +200,7 @@ class _AppendRotatingHandler(logging.StreamHandler):
                 except Exception:
                     pass
                 self._stream = self._open()
-                self.stream  = self._stream
+                self.stream = self._stream
 
         except Exception:
             # Rotation errors must never propagate to callers.
@@ -204,7 +208,7 @@ class _AppendRotatingHandler(logging.StreamHandler):
 
     # -- logging.StreamHandler overrides ------------------------------------
 
-    def emit(self, record: logging.LogRecord) -> None:  # type: ignore[override]
+    def emit(self, record: logging.LogRecord) -> None:
         with self._lock:
             if self._current_size() >= self._max_bytes:
                 self._rotate()
@@ -238,7 +242,9 @@ class _AppendRotatingHandler(logging.StreamHandler):
                 # Append a reason marker.
                 try:
                     marker = f"\n# --- archived: reason={reason} at {datetime.now().isoformat()} ---\n"
-                    archive.write_bytes(content + marker.encode(self._encoding, "replace"))
+                    archive.write_bytes(
+                        content + marker.encode(self._encoding, "replace")
+                    )
                     self._prune_archives()
                 except OSError:
                     return None
@@ -279,6 +285,7 @@ _log.addHandler(_handler)
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _ts() -> str:
     """Wall-clock timestamp, millisecond precision.  Uses datetime.now()."""
     now = datetime.now()
@@ -315,10 +322,11 @@ def _emit(line: str) -> None:
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def log_tool_call(tool_name: str, trace_id: str, args_summary: str = "") -> float:
     """Emit TOOL_CALL line.  Returns ``perf_counter()`` start for timing."""
-    c    = _C
-    tid  = f"  {c['grey']}trace={trace_id}{c['reset']}" if trace_id else ""
+    c = _C
+    tid = f"  {c['grey']}trace={trace_id}{c['reset']}" if trace_id else ""
     tail = f"  {c['grey']}{args_summary}{c['reset']}" if args_summary else ""
     _emit(
         f"{c['grey']}[{_ts()}]{c['reset']} "
@@ -329,19 +337,18 @@ def log_tool_call(tool_name: str, trace_id: str, args_summary: str = "") -> floa
 
 
 def log_tool_result(
-    tool_name:  str,
-    trace_id:   str,
+    tool_name: str,
+    trace_id: str,
     start_time: float,
-    outcome:    str,
-    extra:      dict[str, Any] | None = None,
+    outcome: str,
+    extra: dict[str, Any] | None = None,
 ) -> float:
     """Emit TOOL_RESULT line with duration.  Returns ``duration_ms``."""
-    duration_ms   = (time.perf_counter() - start_time) * 1000
-    c             = _C
+    duration_ms = (time.perf_counter() - start_time) * 1000
+    c = _C
     outcome_color = _OUTCOME_COLOR.get(outcome, c["grey"])
-    extra_str     = (
-        "  " + "  ".join(f"{k}={v}" for k, v in (extra or {}).items())
-        if extra else ""
+    extra_str = (
+        "  " + "  ".join(f"{k}={v}" for k, v in (extra or {}).items()) if extra else ""
     )
     tid = f"  {c['grey']}trace={trace_id}{c['reset']}" if trace_id else ""
     _emit(
@@ -356,8 +363,8 @@ def log_tool_result(
 
 
 def log_auth(tool_name: str, profile: str, allowed: bool) -> None:
-    c      = _C
-    color  = c["green"] if allowed else c["red"]
+    c = _C
+    color = c["green"] if allowed else c["red"]
     status = "ALLOW" if allowed else "DENY"
     _emit(
         f"{c['grey']}[{_ts()}]{c['reset']} "
@@ -367,8 +374,8 @@ def log_auth(tool_name: str, profile: str, allowed: bool) -> None:
 
 
 def log_error(tool_name: str, exc: Exception, trace_id: str = "") -> None:
-    c    = _C
-    tid  = f"  {c['grey']}trace={trace_id}{c['reset']}" if trace_id else ""
+    c = _C
+    tid = f"  {c['grey']}trace={trace_id}{c['reset']}" if trace_id else ""
     safe = _sanitize_exc(exc)
     _emit(
         f"{c['grey']}[{_ts()}]{c['reset']} "
@@ -394,7 +401,7 @@ def log_startup(server_name: str, db_path: str) -> None:
                 f"{archived.name}{_C['reset']}"
             )
 
-    c   = _C
+    c = _C
     sep = c["cyan"] + "-" * 60 + c["reset"]
     _emit(sep)
     _emit(
@@ -415,8 +422,5 @@ def log_shutdown() -> None:
     )
     archived = _handler.archive_session(reason="clean-shutdown")
     if archived:
-        _emit(
-            f"{c['grey']}[{_ts()}] session archived -> "
-            f"{archived.name}{c['reset']}"
-        )
+        _emit(f"{c['grey']}[{_ts()}] session archived -> {archived.name}{c['reset']}")
     _handler.close()

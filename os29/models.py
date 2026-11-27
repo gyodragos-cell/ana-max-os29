@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
 import math
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def new_id() -> str:
@@ -39,10 +39,21 @@ class TraceEvent:
                 raise ValueError(f"{name} must be a non-empty string")
             if len(value) > 256:
                 raise ValueError(f"{name} exceeds 256 characters")
-        if self.outcome not in {"observed", "success", "failure", "error", "blocked", "unknown"}:
-            raise ValueError("outcome must be one of observed/success/failure/error/blocked/unknown")
+        if self.outcome not in {
+            "observed",
+            "success",
+            "failure",
+            "error",
+            "blocked",
+            "unknown",
+        }:
+            raise ValueError(
+                "outcome must be one of observed/success/failure/error/blocked/unknown"
+            )
         if self.duration_ms is not None:
-            if isinstance(self.duration_ms, bool) or not isinstance(self.duration_ms, (int, float)):
+            if isinstance(self.duration_ms, bool) or not isinstance(
+                self.duration_ms, (int, float)
+            ):
                 raise ValueError("duration_ms must be a finite non-negative number")
             if not math.isfinite(float(self.duration_ms)) or self.duration_ms < 0:
                 raise ValueError("duration_ms must be a finite non-negative number")
@@ -68,13 +79,24 @@ class TraceEvent:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, value: dict[str, Any]) -> "TraceEvent":
+    def from_dict(cls, value: dict[str, Any]) -> TraceEvent:
         if not isinstance(value, dict):
             raise ValueError("event must be a JSON object")
         allowed = {
-            "trace_id", "source", "component", "kind", "action", "outcome",
-            "event_id", "timestamp", "parent_event_id", "mission_id", "target",
-            "duration_ms", "attributes", "schema_version",
+            "trace_id",
+            "source",
+            "component",
+            "kind",
+            "action",
+            "outcome",
+            "event_id",
+            "timestamp",
+            "parent_event_id",
+            "mission_id",
+            "target",
+            "duration_ms",
+            "attributes",
+            "schema_version",
         }
         extra = set(value) - allowed
         if extra:

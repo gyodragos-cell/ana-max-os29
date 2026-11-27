@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -14,7 +14,9 @@ _SECRET_KEY = re.compile(
 )
 _SECRET_TEXT_PATTERNS = [
     re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{8,}"),
-    re.compile(r"(?i)(password|passwd|pwd|access_token|refresh_token|api[_-]?key|client_secret|secret|token)=([^&\s]+)"),
+    re.compile(
+        r"(?i)(password|passwd|pwd|access_token|refresh_token|api[_-]?key|client_secret|secret|token)=([^&\s]+)"
+    ),
     re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),
 ]
 _PRIVATE_KEY = re.compile(
@@ -43,11 +45,23 @@ def redact_text(text: str, max_length: int = 2000) -> tuple[str, int]:
 def is_sensitive_key(key: str) -> bool:
     normalized = re.sub(r"[^a-z0-9_-]", "", str(key).lower())
     return bool(_SECRET_KEY.search(normalized)) or any(
-        word in normalized for word in ("authorization", "cookie", "password", "secret", "token", "apikey", "credential", "privatekey")
+        word in normalized
+        for word in (
+            "authorization",
+            "cookie",
+            "password",
+            "secret",
+            "token",
+            "apikey",
+            "credential",
+            "privatekey",
+        )
     )
 
 
-def redact_value(value: Any, *, max_length: int = 2000, key_hint: str = "") -> tuple[Any, int]:
+def redact_value(
+    value: Any, *, max_length: int = 2000, key_hint: str = ""
+) -> tuple[Any, int]:
     if key_hint and is_sensitive_key(key_hint):
         return REDACTED, 1
     if isinstance(value, Mapping):
@@ -59,13 +73,13 @@ def redact_value(value: Any, *, max_length: int = 2000, key_hint: str = "") -> t
             total += count
         return result, total
     if isinstance(value, (list, tuple)):
-        result = []
+        result_list: list[Any] = []
         total = 0
         for child in value:
             clean, count = redact_value(child, max_length=max_length)
-            result.append(clean)
+            result_list.append(clean)
             total += count
-        return result, total
+        return result_list, total
     if isinstance(value, str):
         return redact_text(value, max_length=max_length)
     if value is None or isinstance(value, (bool, int, float)):

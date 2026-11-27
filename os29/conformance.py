@@ -1,11 +1,24 @@
 """Bounded, non-executing agent conformance classification."""
+
 from __future__ import annotations
-from typing import Mapping
 
-REQUIRED = ("contracts", "evidence", "trace", "checkpoint", "gateway", "anti_repeat", "sentinel", "observability")
+from collections.abc import Mapping
+
+REQUIRED = (
+    "contracts",
+    "evidence",
+    "trace",
+    "checkpoint",
+    "gateway",
+    "anti_repeat",
+    "sentinel",
+    "observability",
+)
 
 
-def certify(agent: str, results: Mapping[str, bool]) -> dict:
+def certify(
+    agent: str, results: Mapping[str, bool]
+) -> dict[str, str | list[str] | bool]:
     missing = [k for k in REQUIRED if k not in results]
     failed = [k for k in REQUIRED if k in results and not results[k]]
     if failed or len(failed) == len(REQUIRED):
@@ -14,4 +27,10 @@ def certify(agent: str, results: Mapping[str, bool]) -> dict:
         status = "LIMITED"
     else:
         status = "CERTIFIED"
-    return {"agent": agent, "status": status, "missing": missing, "failed": failed, "evidence_only": True}
+    return {
+        "agent": agent,
+        "status": status,
+        "missing": missing,
+        "failed": failed,
+        "evidence_only": True,
+    }

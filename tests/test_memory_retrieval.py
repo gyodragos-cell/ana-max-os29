@@ -22,21 +22,29 @@ def _capsule(objective: str) -> dict:
     }
 
 
-def test_memory_search_retrieves_across_sources_and_filters_candidate_lessons(tmp_path: Path):
+def test_memory_search_retrieves_across_sources_and_filters_candidate_lessons(
+    tmp_path: Path,
+):
     store = Store(tmp_path / "retrieval.db")
-    observed = store.record_event(TraceEvent(
-        trace_id="trace-gateway-timeout",
-        source="pytest",
-        component="gateway-health",
-        kind="http.response",
-        action="gateway health endpoint timeout",
-        outcome="error",
-        attributes={"exception_type": "ReadTimeout", "status_code": 503},
-    ).to_dict())
+    observed = store.record_event(
+        TraceEvent(
+            trace_id="trace-gateway-timeout",
+            source="pytest",
+            component="gateway-health",
+            kind="http.response",
+            action="gateway health endpoint timeout",
+            outcome="error",
+            attributes={"exception_type": "ReadTimeout", "status_code": 503},
+        ).to_dict()
+    )
     store.create_incident("trace-gateway-timeout")
-    store.save_capsule("mission-gateway", _capsule("Investigate the gateway health timeout"))
+    store.save_capsule(
+        "mission-gateway", _capsule("Investigate the gateway health timeout")
+    )
     store.upsert_capability(
-        kind="service", name="gateway-health-probe", status="degraded",
+        kind="service",
+        name="gateway-health-probe",
+        status="degraded",
         evidence={"port": 8766},
     )
     candidate = store.record_experience(
@@ -53,37 +61,48 @@ def test_memory_search_retrieves_across_sources_and_filters_candidate_lessons(tm
     assert ordinary["semantic_embeddings_enabled"] is False
     found_types = {item["source_type"] for item in ordinary["results"]}
     assert {"event", "incident", "capsule", "capability"}.issubset(found_types)
-    assert not any(item["source_ref"] == candidate["lesson_id"] for item in ordinary["results"])
+    assert not any(
+        item["source_ref"] == candidate["lesson_id"] for item in ordinary["results"]
+    )
 
     with_candidates = search_memory(
-        store, "gateway health timeout", limit=20,
-        include_candidates=True, source_types=["experience"],
+        store,
+        "gateway health timeout",
+        limit=20,
+        include_candidates=True,
+        source_types=["experience"],
     )
     assert with_candidates["result_count"] == 1
     assert with_candidates["results"][0]["source_ref"] == candidate["lesson_id"]
     assert with_candidates["results"][0]["trust_status"] == "candidate"
 
 
-def test_memory_index_redacts_sensitive_values_and_omits_unapproved_event_fields(tmp_path: Path):
+def test_memory_index_redacts_sensitive_values_and_omits_unapproved_event_fields(
+    tmp_path: Path,
+):
     store = Store(tmp_path / "retrieval-redaction.db")
-    store.record_event(TraceEvent(
-        trace_id="trace-secret-check",
-        source="pytest",
-        component="health-check",
-        kind="http.response",
-        action="health endpoint check",
-        outcome="error",
-        target="http://127.0.0.1:8766/health?token=very-secret-token-value",
-        attributes={
-            "exception_type": "ReadTimeout",
-            "Authorization": "Bearer never-index-this-bearer",
-            "request_body": "private payload should not be indexed",
-        },
-    ).to_dict())
+    store.record_event(
+        TraceEvent(
+            trace_id="trace-secret-check",
+            source="pytest",
+            component="health-check",
+            kind="http.response",
+            action="health endpoint check",
+            outcome="error",
+            target="http://127.0.0.1:8766/health?token=very-secret-token-value",
+            attributes={
+                "exception_type": "ReadTimeout",
+                "Authorization": "Bearer never-index-this-bearer",
+                "request_body": "private payload should not be indexed",
+            },
+        ).to_dict()
+    )
 
     refresh_memory_index(store)
     with store._connect() as conn:
-        rows = conn.execute("SELECT title, body, metadata_json FROM memory_documents").fetchall()
+        rows = conn.execute(
+            "SELECT title, body, metadata_json FROM memory_documents"
+        ).fetchall()
     all_text = json.dumps([dict(row) for row in rows], ensure_ascii=True)
     assert "very-secret-token-value" not in all_text
     assert "never-index-this-bearer" not in all_text
@@ -93,7 +112,9 @@ def test_memory_index_redacts_sensitive_values_and_omits_unapproved_event_fields
 
 def test_memory_index_incremental_update_and_stale_text_removal(tmp_path: Path):
     store = Store(tmp_path / "retrieval-update.db")
-    store.save_capsule("mission-retrieval", _capsule("Blue comet is the old test objective"))
+    store.save_capsule(
+        "mission-retrieval", _capsule("Blue comet is the old test objective")
+    )
     first = refresh_memory_index(store)
     assert first["inserted"] >= 1
     second = refresh_memory_index(store)
@@ -101,7 +122,9 @@ def test_memory_index_incremental_update_and_stale_text_removal(tmp_path: Path):
     assert second["inserted"] == 0
     assert second["updated"] == 0
 
-    store.save_capsule("mission-retrieval", _capsule("Amber lantern is the new test objective"))
+    store.save_capsule(
+        "mission-retrieval", _capsule("Amber lantern is the new test objective")
+    )
     changed = refresh_memory_index(store)
     assert changed["updated"] == 1
     old_result = search_memory(store, "blue comet", source_types=["capsule"])
@@ -139,11 +162,17 @@ def test_memory_search_indexes_only_explicit_local_document_sources(tmp_path: Pa
         encoding="utf-8",
     )
     (config_dir / "memory_sources.json").write_text(
-        json.dumps({
-            "files": [str(approved)],
-            "directories": [],
-            "limits": {"max_file_bytes": 524288, "max_total_source_bytes": 8388608, "max_files": 200},
-        }),
+        json.dumps(
+            {
+                "files": [str(approved)],
+                "directories": [],
+                "limits": {
+                    "max_file_bytes": 524288,
+                    "max_total_source_bytes": 8388608,
+                    "max_files": 200,
+                },
+            }
+        ),
         encoding="utf-8",
     )
     store = Store(db_root / "os29.db")
@@ -154,35 +183,43 @@ def test_memory_search_indexes_only_explicit_local_document_sources(tmp_path: Pa
     assert "correlates" in result["results"][0]["excerpt"]
 
     with store._connect() as conn:
-        indexed_bodies = " ".join(row[0] for row in conn.execute(
-            "SELECT body FROM memory_documents WHERE source_type='document'"
-        ).fetchall())
+        indexed_bodies = " ".join(
+            row[0]
+            for row in conn.execute(
+                "SELECT body FROM memory_documents WHERE source_type='document'"
+            ).fetchall()
+        )
     assert "must never enter" not in indexed_bodies
 
 
-
-def test_local_document_index_preserves_content_past_2000_chars_and_redacts_late_secrets(tmp_path: Path):
+def test_local_document_index_preserves_content_past_2000_chars_and_redacts_late_secrets(
+    tmp_path: Path,
+):
     db_root = tmp_path
     config_dir = db_root / "config"
     docs_dir = db_root / "docs"
     config_dir.mkdir()
     docs_dir.mkdir()
     approved = docs_dir / "long-approved.md"
-    prefix = ("ordinary-reference-context " * 150)
+    prefix = "ordinary-reference-context " * 150
     secret = "late-document-secret-never-store-4bc0e2"
     tail_marker = "tailretrievalmarker"
     approved.write_text(
-        "# Long approved document\n\n"
-        + prefix
-        + f" password={secret} {tail_marker}",
+        "# Long approved document\n\n" + prefix + f" password={secret} {tail_marker}",
         encoding="utf-8",
     )
     (config_dir / "memory_sources.json").write_text(
-        json.dumps({
-            "files": [str(approved)],
-            "directories": [],
-            "limits": {"max_file_bytes": 524288, "max_total_source_bytes": 8388608, "max_files": 200},
-        }),
+        json.dumps(
+            {
+                "files": [str(approved)],
+                "directories": [],
+                "limits": {
+                    "max_file_bytes": 524288,
+                    "max_total_source_bytes": 8388608,
+                    "max_files": 200,
+                },
+            }
+        ),
         encoding="utf-8",
     )
     store = Store(db_root / "os29.db")

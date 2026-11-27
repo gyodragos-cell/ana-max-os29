@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OS29 Core — Local Evidence &amp; Continuity for AI Agents</title>
+<meta name="description" content="OS29 is a production-grade Python library for storing evidence, work units and memory for AI agents. SQLite WAL, MCP STDIO, hash-chain audit, reproducible benchmarks.">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #161b22;
+    --border: #21262d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #d29922;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --danger: #f85149;
+    --hero-glow: rgba(88,166,255,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; line-height: 1.6; }
+
+  /* NAV */
+  nav { position: sticky; top: 0; z-index: 100; background: rgba(10,12,16,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--accent); letter-spacing: -0.5px; text-decoration: none; }
+  .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.875rem; transition: color .15s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta { background: var(--accent); color: #000; padding: .4rem 1rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; text-decoration: none; transition: opacity .15s; }
+  .nav-cta:hover { opacity: .85; }
+
+  /* HERO */
+  .hero { position: relative; min-height: 92vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .hero-bg { position: absolute; inset: 0; background: url('assets/tower-awakens.png') center/cover no-repeat; opacity: .22; }
+  .hero-glow { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); width: 600px; height: 400px; background: radial-gradient(ellipse, var(--hero-glow) 0%, transparent 70%); pointer-events: none; }
+  .hero-content { position: relative; text-align: center; padding: 2rem 1.5rem; max-width: 820px; }
+  .hero-badge { display: inline-block; background: rgba(88,166,255,.12); border: 1px solid rgba(88,166,255,.3); color: var(--accent); font-size: 0.75rem; font-weight: 600; padding: .3rem .9rem; border-radius: 999px; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 1.5rem; }
+  h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 1.2rem; }
+  h1 span { background: linear-gradient(135deg, var(--accent) 0%, #79c0ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero-sub { font-size: 1.15rem; color: var(--muted); max-width: 600px; margin: 0 auto 2rem; }
+  .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .btn-primary { background: var(--accent); color: #000; padding: .75rem 1.75rem; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 1rem; transition: opacity .15s; }
+  .btn-primary:hover { opacity: .85; }
+  .btn-ghost { border: 1px solid var(--border); color: var(--text); padding: .75rem 1.75rem; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 1rem; transition: border-color .15s; }
+  .btn-ghost:hover { border-color: var(--accent); }
+  .install-box { margin-top: 2.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.5rem; display: inline-flex; align-items: center; gap: 1rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .95rem; }
+  .install-box code { color: var(--accent2); }
+  .copy-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); padding: .3rem .8rem; border-radius: 6px; cursor: pointer; font-size: .8rem; transition: all .15s; }
+  .copy-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  /* STATS STRIP */
+  .stats-strip { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .stats-inner { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.5rem; text-align: center; }
+  .stat-num { font-size: 2rem; font-weight: 800; color: var(--accent); }
+  .stat-label { font-size: .8rem; color: var(--muted); margin-top: .2rem; text-transform: uppercase; letter-spacing: .05em; }
+
+  /* SECTIONS */
+  section { padding: 5rem 1.5rem; }
+  .section-inner { max-width: 1100px; margin: 0 auto; }
+  .section-tag { font-size: .75rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .75rem; }
+  h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800; letter-spacing: -.5px; margin-bottom: 1rem; }
+  .section-lead { color: var(--muted); font-size: 1.05rem; max-width: 600px; margin-bottom: 3rem; }
+
+  /* CARDS */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; transition: border-color .2s; }
+  .card:hover { border-color: var(--accent); }
+  .card-icon { font-size: 1.5rem; margin-bottom: .75rem; }
+  .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .5rem; }
+  .card p { font-size: .875rem; color: var(--muted); line-height: 1.6; }
+
+  /* SCREENSHOTS */
+  .screenshot-block { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; margin-bottom: 4rem; }
+  .screenshot-block.reverse { direction: rtl; }
+  .screenshot-block.reverse > * { direction: ltr; }
+  .screenshot-wrap { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .screenshot-wrap img { width: 100%; display: block; }
+  .screenshot-text h3 { font-size: 1.4rem; font-weight: 700; margin-bottom: .75rem; }
+  .screenshot-text p { color: var(--muted); margin-bottom: 1rem; }
+  .tag { display: inline-block; background: rgba(88,166,255,.1); border: 1px solid rgba(88,166,255,.2); color: var(--accent); font-size: .75rem; font-weight: 600; padding: .2rem .6rem; border-radius: 999px; margin-right: .4rem; margin-bottom: .4rem; }
+  .tag.green { background: rgba(63,185,80,.1); border-color: rgba(63,185,80,.2); color: var(--accent2); }
+  .tag.yellow { background: rgba(210,153,34,.1); border-color: rgba(210,153,34,.2); color: var(--accent3); }
+
+  /* BENCHMARK */
+  .bench-table { width: 100%; border-collapse: collapse; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .85rem; margin-top: 1.5rem; }
+  .bench-table th { background: var(--surface2); color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; padding: .75rem 1rem; text-align: left; border: 1px solid var(--border); }
+  .bench-table td { padding: .75rem 1rem; border: 1px solid var(--border); vertical-align: middle; }
+  .bench-table tr:nth-child(even) td { background: var(--surface); }
+  .bench-table tr.winner td { background: rgba(63,185,80,.06); }
+  .best { color: var(--accent2); font-weight: 700; }
+  .bench-footnote { font-size: .78rem; color: var(--muted); margin-top: .75rem; }
+
+  /* CODE */
+  pre { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; overflow-x: auto; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .85rem; line-height: 1.6; }
+  .kw { color: #ff7b72; }
+  .str { color: #a5d6ff; }
+  .cmt { color: var(--muted); font-style: italic; }
+  .fn { color: #d2a8ff; }
+
+  /* LIFECYCLE */
+  .lifecycle { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-top: 2rem; }
+  .lc-step { flex: 1; min-width: 110px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; }
+  .lc-step h4 { font-size: .75rem; font-weight: 700; margin-top: .4rem; }
+  .lc-step p { font-size: .65rem; color: var(--muted); margin-top: .2rem; }
+  .lc-arrow { color: var(--accent); font-size: 1.2rem; padding: 0 .4rem; flex-shrink: 0; }
+
+  /* ARCH */
+  .arch-diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .85rem; line-height: 2.1; color: var(--muted); overflow-x: auto; }
+  .hl { color: var(--accent); }
+  .hl2 { color: var(--accent2); }
+  .hl3 { color: var(--accent3); }
+
+  /* FOOTER */
+  footer { border-top: 1px solid var(--border); padding: 3rem 1.5rem; text-align: center; color: var(--muted); font-size: .875rem; }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .screenshot-block, .team-grid { grid-template-columns: 1fr; }
+    .screenshot-block.reverse { direction: ltr; }
+    .lifecycle { flex-direction: column; align-items: stretch; }
+    .lc-arrow { transform: rotate(90deg); text-align: center; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">&#x2B21; OS29</a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#live">Live System</a></li>
+      <li><a href="#benchmarks">Benchmarks</a></li>
+      <li><a href="#quickstart">Quickstart</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#team">Team</a></li>
+    </ul>
+    <a class="nav-cta" href="https://github.com/gyodragos-cell/ana-max-os29">GitHub &rarr;</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-content">
+    <span class="hero-badge">&#x1F6E1;&#xFE0F; Production-Grade &middot; Open Source &middot; Zero Cloud</span>
+    <h1>Local Evidence &amp; Continuity<br>for <span>AI Agents</span></h1>
+    <p class="hero-sub">OS29 gives every AI agent a tamper-evident audit trail, crash-safe work units and sub-millisecond memory &mdash; all running on your machine, offline, with one pip install.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#quickstart">Get Started</a>
+      <a class="btn-ghost" href="https://github.com/gyodragos-cell/ana-max-os29">View on GitHub</a>
+    </div>
+    <div class="install-box">
+      <code>pip install os29-core</code>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('pip install os29-core');this.textContent='&#x2713; Copied'">Copy</button>
+    </div>
+  </div>
+</section>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div>
+      <div class="stat-num">0.06ms</div>
+      <div class="stat-label">FTS5 p50 latency</div>
+    </div>
+    <div>
+      <div class="stat-num">89+</div>
+      <div class="stat-label">Tests passing</div>
+    </div>
+    <div>
+      <div class="stat-num">100%</div>
+      <div class="stat-label">Offline capable</div>
+    </div>
+    <div>
+      <div class="stat-num">0</div>
+      <div class="stat-label">Cloud dependencies</div>
+    </div>
+    <div>
+      <div class="stat-num">SHA-256</div>
+      <div class="stat-label">Hash-chain audit</div>
+    </div>
+    <div>
+      <div class="stat-num">MCP</div>
+      <div class="stat-label">STDIO compatible</div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-tag">What it does</div>
+    <h2>Everything an agent needs<br>to remember, audit and resume</h2>
+    <p class="section-lead">Not another model. Not cloud memory. A local SQLite-backed evidence store that survives crashes, restarts and handoffs.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">&#x1F512;</div>
+        <h3>Tamper-Evident Hash Chain</h3>
+        <p>Every WorkUnit and EvidenceReceipt is linked by SHA-256 into a verifiable chain. Run <code>os29 verify &lt;id&gt;</code> to confirm cryptographic integrity offline.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x26A1;</div>
+        <h3>SQLite WAL + FTS5/BM25</h3>
+        <p>PRAGMA WAL mode, busy_timeout and foreign keys enabled by default. Full-text search with BM25 ranking at &lt;0.1ms p99 &mdash; zero external dependencies.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1F504;</div>
+        <h3>Crash-Safe Work Units</h3>
+        <p>State + evidence saved in a single atomic transaction. Survive os._exit(23) mid-write. 10 concurrent processes verified with no data loss or corruption.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1F6E1;&#xFE0F;</div>
+        <h3>MCP Policy Guard</h3>
+        <p>Allowlist/denylist per tool, strict per-call timeouts, payload size limits and automatic secret redaction before any write to SQLite.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1F50D;</div>
+        <h3>Hybrid Retrieval</h3>
+        <p>Lexical FTS5 baseline (zero deps) + optional vector scoring with row-wise L2 normalization. Guard against null/NaN/Inf vectors built-in.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">&#x1F3E5;</div>
+        <h3>CLI Doctor + Bench</h3>
+        <p><code>os29 doctor</code> checks DB integrity, WAL health and schema version. <code>os29 bench</code> runs the full reproducible benchmark locally in &lt;30 seconds.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE SYSTEM -->
+<section id="live" style="background: var(--surface);">
+  <div class="section-inner">
+    <div class="section-tag">Running Live</div>
+    <h2>See it in production</h2>
+    <p class="section-lead">Real screenshots from PC1313 &mdash; OS29 running live with ANA MAX, 4-terminal workspace and Tower Control V2 dashboard.</p>
+
+    <div class="screenshot-block">
+      <div class="screenshot-wrap">
+        <img src="assets/pc-terminal.png" alt="4-pane terminal showing ANA MAX and OS29 running live" loading="lazy">
+      </div>
+      <div class="screenshot-text">
+        <span class="tag">DEMO SIMULATION</span>
+        <h3>4-Terminal Live Workspace</h3>
+        <p>ANA MAX agent running with OS29 memory backend. Four concurrent terminal panes: MCP STDIO listener, OS29 store writes, evidence verification and live log stream &mdash; all local, all offline.</p>
+        <span class="tag green">SQLite WAL</span>
+        <span class="tag green">MCP STDIO</span>
+        <span class="tag">Evidence Hashing</span>
+      </div>
+    </div>
+
+    <div class="screenshot-block reverse">
+      <div class="screenshot-wrap">
+        <img src="assets/tower-dashboard.png" alt="Tower Control V2 dashboard showing OS28/OS29 agent coordination" loading="lazy">
+      </div>
+      <div class="screenshot-text">
+        <span class="tag yellow">DEMO SIMULATION</span>
+        <h3>Tower Control V2 Dashboard</h3>
+        <p>Multi-agent coordination panel. Work Units flowing through OS29: created &rarr; checkpoint &rarr; handoff &rarr; verified. The hash-chain audit trail visible in real time. Zero cloud calls.</p>
+        <span class="tag yellow">Work Units</span>
+        <span class="tag yellow">Hash Chain</span>
+        <span class="tag green">Offline</span>
+      </div>
+    </div>
+
+    <div class="screenshot-block">
+      <div class="screenshot-wrap">
+        <img src="assets/readme-mcp.png" alt="GitHub repo showing MCP STDIO integration section" loading="lazy">
+      </div>
+      <div class="screenshot-text">
+        <h3>MCP STDIO Integration</h3>
+        <p>OS29 exposes all tools over STDIO JSON-RPC &mdash; the standard MCP protocol. Any MCP-compatible client (Claude, Gemini, OpenAI tool calls) can connect without modification.</p>
+        <span class="tag">JSON-RPC 2.0</span>
+        <span class="tag green">Schema Validated</span>
+        <span class="tag">Policy Guard</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BENCHMARKS -->
+<section id="benchmarks">
+  <div class="section-inner">
+    <div class="section-tag">Reproducible Results</div>
+    <h2>Benchmark: 500 episodes, seed=42</h2>
+    <p class="section-lead">Run locally with <code>python benchmarks/run_benchmark.py</code>. Numbers below are real output from results.json. No synthetic inflation.</p>
+
+    <table class="bench-table">
+      <thead>
+        <tr>
+          <th>Strategy</th>
+          <th>p50 (ms)</th>
+          <th>p95 (ms)</th>
+          <th>p99 (ms)</th>
+          <th>Recall@5</th>
+          <th>MRR</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Baseline 1 &mdash; Python dict + LIKE</td>
+          <td>0.0924</td><td>0.0961</td><td>0.1377</td><td>70.0%</td><td>0.3655</td>
+        </tr>
+        <tr>
+          <td>Baseline 2 &mdash; Regex full-scan</td>
+          <td>0.3905</td><td>0.7153</td><td>0.9636</td><td>70.0%</td><td>0.3655</td>
+        </tr>
+        <tr class="winner">
+          <td><strong>OS29 FTS5/BM25 + WAL</strong></td>
+          <td class="best">0.0613</td><td class="best">0.0918</td><td class="best">0.1973</td><td class="best">70.0%</td><td>0.3197</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="bench-footnote">Source: <code>benchmarks/results.json</code> &mdash; deterministic, reproducible with <code>python benchmarks/run_benchmark.py</code>. FTS5 p50 is 33% faster than dict+LIKE baseline under identical load.</p>
+  </div>
+</section>
+
+<!-- QUICKSTART -->
+<section id="quickstart" style="background: var(--surface);">
+  <div class="section-inner">
+    <div class="section-tag">Get Running in 60 Seconds</div>
+    <h2>Three commands to start</h2>
+    <p class="section-lead">No API keys. No cloud account. No model download. Just Python 3.11+.</p>
+
+    <pre><span class="cmt"># 1. Clone and install</span>
+git clone https://github.com/gyodragos-cell/ana-max-os29.git
+cd ana-max-os29
+python -m venv .venv
+<span class="cmt"># Windows:</span> .venv\Scripts\python -m pip install -e ".[test]"
+<span class="cmt"># Linux/macOS:</span> .venv/bin/python -m pip install -e ".[test]"
+
+<span class="cmt"># 2. Run all tests (passes in &lt;10 seconds)</span>
+python -m pytest -q
+
+<span class="cmt"># 3. Try the CLI</span>
+python -m os29.cli --help</pre>
+
+    <div class="section-tag" style="margin-top:3rem">Work Unit Lifecycle</div>
+    <div class="lifecycle">
+      <div class="lc-step"><div>&#x1F195;</div><h4>CREATE</h4><p>os29_work_unit_create</p></div>
+      <div class="lc-arrow">&rarr;</div>
+      <div class="lc-step"><div>&#x1F4CC;</div><h4>CHECKPOINT</h4><p>os29_work_unit_checkpoint</p></div>
+      <div class="lc-arrow">&rarr;</div>
+      <div class="lc-step"><div>&#x2705;</div><h4>EVIDENCE</h4><p>os29_evidence_receipt_record</p></div>
+      <div class="lc-arrow">&rarr;</div>
+      <div class="lc-step"><div>&#x1F91D;</div><h4>HANDOFF</h4><p>os29_work_unit_handoff</p></div>
+      <div class="lc-arrow">&rarr;</div>
+      <div class="lc-step"><div>&#x1F50D;</div><h4>VERIFY</h4><p>os29 verify &lt;id&gt;</p></div>
+    </div>
+
+    <pre style="margin-top:2rem"><span class="cmt"># Full cycle (examples/01_quickstart_work_unit.py)</span>
+<span class="kw">from</span> os29 <span class="kw">import</span> OS29Store
+
+store = OS29Store(<span class="str">"demo.db"</span>)
+store.initialize()
+
+wu = store.create_work_unit(
+    agent_id=<span class="str">"agent-alpha"</span>,
+    task_description=<span class="str">"Analyze dependency vulnerability"</span>,
+)
+store.checkpoint_work_unit(wu.id, <span class="str">"Scanning 142 packages..."</span>)
+store.record_evidence_receipt(wu.id, <span class="str">"No CVEs found in production deps"</span>)
+store.handoff_work_unit(wu.id, to_agent=<span class="str">"agent-beta"</span>)
+
+<span class="cmt"># Cryptographic verification</span>
+result = store.verify_work_unit(wu.id)
+<span class="kw">print</span>(result)  <span class="cmt"># {"valid": true, "hash": "sha256:..."}</span></pre>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="section-inner">
+    <div class="section-tag">How it works</div>
+    <h2>Architecture</h2>
+    <p class="section-lead">OS29 is a pure local layer. No network required. The agent decides what to store; OS29 guarantees it survives.</p>
+
+    <div class="arch-diagram">
+      <span class="hl">Your AI Agent / LLM Client</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MCP STDIO / Python import<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+      +----------------------------------+<br>
+      |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hl">OS29 Core</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+      |&nbsp;Policy Guard | MCP Validation&nbsp;&nbsp;|<br>
+      |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+      |&nbsp;<span class="hl2">Work Units</span>&nbsp;|&nbsp;<span class="hl2">Evidence</span>&nbsp;|&nbsp;<span class="hl2">Search</span>&nbsp;|<br>
+      |&nbsp;Checkpoint | Hash-Chain| FTS5/BM25|<br>
+      |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+      |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hl3">SQLite WAL</span> (local file)&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+      +----------------------------------+<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
+      &nbsp;&nbsp;Optional: OS28 provider interface<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;(offline mock by default)
+    </div>
+
+    <div class="cards" style="margin-top:2rem">
+      <div class="card">
+        <h3>SQLite WAL Mode</h3>
+        <p>PRAGMA journal_mode=WAL + busy_timeout=10000ms + foreign_keys=ON. Multiple readers never block writers. Verified with 10 concurrent Python processes.</p>
+      </div>
+      <div class="card">
+        <h3>Atomic Transactions</h3>
+        <p>Every state transition writes state + evidence in one transaction. No orphaned state if the process dies mid-write.</p>
+      </div>
+      <div class="card">
+        <h3>MCP STDIO Protocol</h3>
+        <p>JSON-RPC 2.0 over stdin/stdout. Schema-validated. Policy guard runs before every tool execution. No network socket needed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section id="team" style="background: var(--surface);">
+  <div class="section-inner">
+    <div class="section-tag">The System</div>
+    <h2>Tower Control &amp; Agent Team</h2>
+    <p class="section-lead">OS29 was built for real multi-agent coordination &mdash; each specialist agent owns its evidence, hands off verified results.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start;margin-top:2rem">
+      <div>
+        <img src="assets/team.png" alt="Justice League of AI agents artwork" loading="lazy" style="width:100%;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)">
+        <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; Agent team artwork</p>
+      </div>
+      <div>
+        <img src="assets/batman-os29.png" alt="Batman operator OS29 artwork" loading="lazy" style="width:100%;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)">
+        <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; OS29 Operator artwork</p>
+        <div class="card" style="margin-top:1.25rem">
+          <div class="card-icon">&#x1F3F0;</div>
+          <h3>Tower Control V2</h3>
+          <p>Coordination layer built on OS29. Routes work units between agents, tracks evidence chains, surfaces stalls and anomalies in real time &mdash; all local.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:3rem">
+      <img src="assets/tower-control.png" alt="Tower of Control OS29 architecture art" loading="lazy" style="width:100%;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)">
+      <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; Tower Control architecture visualization</p>
+    </div>
+  </div>
+</section>
+
+<!-- BROKEN SIGNAL / CRASH RECOVERY -->
+<section id="signal">
+  <div class="section-inner">
+    <div class="section-tag">When it matters</div>
+    <h2>No more broken signal</h2>
+    <p class="section-lead">AI agents crash. Context windows reset. Without OS29, the work unit is lost. With it, the agent resumes exactly where it stopped &mdash; hash verified.</p>
+    <div class="screenshot-block">
+      <div class="screenshot-wrap">
+        <img src="assets/broken-signal.png" alt="The Broken Signal &mdash; OS29 crash recovery art" loading="lazy">
+      </div>
+      <div class="screenshot-text">
+        <h3>Crash Recovery by Design</h3>
+        <p>Not a promise &mdash; a test. <code>examples/02_crash_recovery_chaos.py</code> spawns 5 real Python processes, each writing checkpoints, then kills them with <code>os._exit(23)</code>. OS29 recovers every work unit.</p>
+        <span class="tag green">os._exit(23) tested</span>
+        <span class="tag green">5 concurrent processes</span>
+        <span class="tag green">Zero data loss verified</span>
+        <pre style="margin-top:1rem;font-size:.78rem;padding:.8rem">python examples/02_crash_recovery_chaos.py
+# Spawning 5 processes...
+# All crashed. Verifying recovery...
+# All 5 work units recovered
+# Hash chain intact</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    <strong style="color:var(--text)">OS29 Core</strong> &mdash; Local evidence &amp; continuity for AI agents<br>
+    <a href="https://github.com/gyodragos-cell/ana-max-os29">GitHub</a> &nbsp;&middot;&nbsp;
+    <a href="https://github.com/gyodragos-cell/ana-max-os29-core">Core Library</a> &nbsp;&middot;&nbsp;
+    <a href="https://github.com/gyodragos-cell/ana-max-os29/blob/main/LICENSE">MIT License</a> &nbsp;&middot;&nbsp;
+    <a href="https://github.com/gyodragos-cell/ana-max-os29/blob/main/docs/ARCHITECTURE.md">Architecture Docs</a>
+  </p>
+  <p style="margin-top:.75rem;font-size:.8rem">All artwork and dashboard images are DEMO SIMULATION visualizations. Benchmark numbers are reproducible: run <code>python benchmarks/run_benchmark.py</code>.</p>
+</footer>
+
+</body>
+</html>

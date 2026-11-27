@@ -1,7 +1,9 @@
 """Pure capability-truth reconciliation for bounded catalog metadata."""
+
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 
 def _names(items: Iterable[Any]) -> set[str]:
@@ -9,14 +11,28 @@ def _names(items: Iterable[Any]) -> set[str]:
     for item in items:
         if isinstance(item, str) and item:
             result.add(item)
-        elif isinstance(item, Mapping) and isinstance(item.get("name"), str) and item["name"]:
+        elif (
+            isinstance(item, Mapping)
+            and isinstance(item.get("name"), str)
+            and item["name"]
+        ):
             result.add(item["name"])
     return result
 
 
-def reconcile(source: Iterable[Any], registry: Iterable[Any], gateway: Iterable[Any], bridge: Iterable[Any]) -> dict[str, Any]:
+def reconcile(
+    source: Iterable[Any],
+    registry: Iterable[Any],
+    gateway: Iterable[Any],
+    bridge: Iterable[Any],
+) -> dict[str, Any]:
     """Compare supplied names only; never discovers or calls a provider."""
-    sets = {"source": _names(source), "registry": _names(registry), "gateway": _names(gateway), "bridge": _names(bridge)}
+    sets = {
+        "source": _names(source),
+        "registry": _names(registry),
+        "gateway": _names(gateway),
+        "bridge": _names(bridge),
+    }
     union = set().union(*sets.values())
     rows = []
     for name in sorted(union):

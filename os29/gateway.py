@@ -4,15 +4,19 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import unquote, urlsplit
 
 from .models import TraceEvent
 from .store import Store
 
-
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BODY_BYTES = 1_048_576
+
+
+class OS29HTTPServer(ThreadingHTTPServer):
+    store: Store
+    token: str
 
 
 class OS29Handler(BaseHTTPRequestHandler):
@@ -20,11 +24,11 @@ class OS29Handler(BaseHTTPRequestHandler):
 
     @property
     def store(self) -> Store:
-        return self.server.store  # type: ignore[attr-defined]
+        return cast(OS29HTTPServer, self.server).store
 
     @property
     def token(self) -> str:
-        return self.server.token  # type: ignore[attr-defined]
+        return cast(OS29HTTPServer, self.server).token
 
     def log_message(self, format: str, *args: Any) -> None:
         # Never put request headers or credentials in default HTTP access logs.
@@ -44,6 +48,7 @@ class OS29Handler(BaseHTTPRequestHandler):
         expected = "Bearer " + self.token
         # Compare constant-length strings in constant time.
         import hmac
+
         return hmac.compare_digest(header.encode("utf-8"), expected.encode("utf-8"))
 
     def _body(self) -> dict[str, Any] | None:
@@ -70,7 +75,14 @@ class OS29Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
         if path == "/health":
-            self._send(200, {"status": "ok", "service": "os29-loopback-gateway", "schema_version": "os29.api.v1"})
+            self._send(
+                200,
+                {
+                    "status": "ok",
+                    "service": "os29-loopback-gateway",
+                    "schema_version": "os29.api.v1",
+                },
+            )
             return
         if not self._authorized():
             self._send(401, {"error": "authentication_required"})
@@ -82,13 +94,22 @@ class OS29Handler(BaseHTTPRequestHandler):
         elif path == "/capability-edges":
             self._send(200, {"edges": self.store.list_capability_edges()})
         elif path.startswith("/traces/"):
-            trace_id = unquote(path[len("/traces/"):])
+            trace_id = unquote(path[len("/traces/") :])
             events = self.store.list_trace(trace_id)
-            self._send(200, {"trace_id": trace_id, "events": events, "summary": self.store.trace_summary(trace_id)})
+            self._send(
+                200,
+                {
+                    "trace_id": trace_id,
+                    "events": events,
+                    "summary": self.store.trace_summary(trace_id),
+                },
+            )
         elif path.startswith("/capsules/"):
-            mission_id = unquote(path[len("/capsules/"):])
+            mission_id = unquote(path[len("/capsules/") :])
             capsule = self.store.get_capsule(mission_id)
-            self._send(200 if capsule else 404, capsule or {"error": "capsule_not_found"})
+            self._send(
+                200 if capsule else 404, capsule or {"error": "capsule_not_found"}
+            )
         else:
             self._send(404, {"error": "not_found"})
 
@@ -119,7 +140,9 @@ class OS29Handler(BaseHTTPRequestHandler):
                     name=str(value.get("name", "")),
                     status=str(value.get("status", "unknown")),
                     owner=str(value["owner"]) if value.get("owner") else None,
-                    evidence=value.get("evidence", {}) if isinstance(value.get("evidence", {}), dict) else {},
+                    evidence=value.get("evidence", {})
+                    if isinstance(value.get("evidence", {}), dict)
+                    else {},
                 )
                 self._send(201, {"success": True, **result})
             else:
@@ -128,15 +151,17 @@ class OS29Handler(BaseHTTPRequestHandler):
             self._send(400, {"error": str(exc)})
 
 
-def make_server(db_path: str | Path, token: str, host: str = "127.0.0.1", port: int = 8790) -> ThreadingHTTPServer:
+def make_server(
+    db_path: str | Path, token: str, host: str = "127.0.0.1", port: int = 8790
+) -> ThreadingHTTPServer:
     if host not in {"127.0.0.1", "::1", "localhost"}:
         raise ValueError("OS29 gateway may bind only to loopback")
     if len(token) < 32:
         raise ValueError("OS29_GATEWAY_TOKEN must contain at least 32 characters")
-    server = ThreadingHTTPServer((host, int(port)), OS29Handler)
+    server = OS29HTTPServer((host, int(port)), OS29Handler)
     server.daemon_threads = True
-    server.store = Store(db_path)  # type: ignore[attr-defined]
-    server.token = token  # type: ignore[attr-defined]
+    server.store = Store(db_path)
+    server.token = token
     return server
 
 
@@ -147,7 +172,9 @@ def main() -> None:
     host = "127.0.0.1"
     port = int(os.environ.get("OS29_GATEWAY_PORT", "8790"))
     server = make_server(db, token, host, port)
-    print(f"OS29 gateway listening on http://{host}:{port} (loopback only; token value not displayed)")
+    print(
+        f"OS29 gateway listening on http://{host}:{port} (loopback only; token value not displayed)"
+    )
     try:
         server.serve_forever(poll_interval=0.25)
     except KeyboardInterrupt:

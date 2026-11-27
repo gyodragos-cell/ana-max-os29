@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from .store import Store
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def _agent_label(event: dict[str, Any]) -> str | None:
@@ -34,6 +34,7 @@ def _resource_snapshot() -> dict[str, Any]:
     """Read-only host resource telemetry. It never starts/stops services or models."""
     try:
         import psutil
+
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage(".")
         cpu_percent = float(psutil.cpu_percent(interval=0.1))
@@ -55,7 +56,11 @@ def _resource_snapshot() -> dict[str, Any]:
             "disk_free_bytes": int(disk.free),
             "pressure_signals": pressures,
             "gpu_state": "not_measured",
-            "thresholds": {"cpu_warning_percent": 85, "ram_warning_percent": 85, "disk_warning_percent": 90},
+            "thresholds": {
+                "cpu_warning_percent": 85,
+                "ram_warning_percent": 85,
+                "disk_warning_percent": 90,
+            },
             "action_taken": "none_read_only_observation",
         }
     except Exception as exc:
@@ -69,8 +74,14 @@ def _resource_snapshot() -> dict[str, Any]:
 
 def _temporal_branch(event: dict[str, Any]) -> dict[str, Any]:
     attributes = event.get("attributes") or {}
-    status_code = attributes.get("status_code") if isinstance(attributes, dict) else None
-    exception_type = str(attributes.get("exception_type", "")) if isinstance(attributes, dict) else ""
+    status_code = (
+        attributes.get("status_code") if isinstance(attributes, dict) else None
+    )
+    exception_type = (
+        str(attributes.get("exception_type", ""))
+        if isinstance(attributes, dict)
+        else ""
+    )
     action_text = str(event.get("action", ""))
     if isinstance(status_code, int) and status_code >= 500:
         experiment = "Replay the same safe request against a controlled test endpoint while recording dependency health and one retry-free baseline."
@@ -87,7 +98,9 @@ def _temporal_branch(event: dict[str, Any]) -> dict[str, Any]:
     else:
         experiment = "Create the smallest benign reproducer and collect a fresh trace with an explicit parent-event chain before changing code."
         expected = "Produce a repeatable failure signature and a trace that can distinguish competing hypotheses."
-        falsifier = "The minimal reproducer is stable and no corresponding failure recurs."
+        falsifier = (
+            "The minimal reproducer is stable and no corresponding failure recurs."
+        )
     return {
         "branch_id": f"branch-review-{event.get('event_id', 'unknown')}",
         "based_on_event_id": event.get("event_id"),
@@ -103,18 +116,25 @@ def _temporal_branch(event: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_intelligence_report(store: Store, *, event_limit: int = 1000) -> dict[str, Any]:
+def build_intelligence_report(
+    store: Store, *, event_limit: int = 1000
+) -> dict[str, Any]:
     """Evidence-first report spanning Agent DNA, REM, Regret, Discovery, immunity and branching."""
     event_limit = max(1, min(int(event_limit), 1000))
     sampled_events = store.recent_events(limit=event_limit)
     synthetic_event_ids = {
         event.get("event_id")
         for event in sampled_events
-        if isinstance(event.get("attributes"), dict) and event["attributes"].get("synthetic") is True
+        if isinstance(event.get("attributes"), dict)
+        and event["attributes"].get("synthetic") is True
     }
     events = [
-        event for event in sampled_events
-        if not (isinstance(event.get("attributes"), dict) and event["attributes"].get("synthetic") is True)
+        event
+        for event in sampled_events
+        if not (
+            isinstance(event.get("attributes"), dict)
+            and event["attributes"].get("synthetic") is True
+        )
     ]
 
     all_experiences = store.list_experiences(limit=1000)
@@ -145,9 +165,15 @@ def build_intelligence_report(store: Store, *, event_limit: int = 1000) -> dict[
             by_agent[label].append(event)
     agent_profiles = []
     for agent, samples in sorted(by_agent.items()):
-        definitive = [event for event in samples if event.get("outcome") in {"success", "failure", "error"}]
+        definitive = [
+            event
+            for event in samples
+            if event.get("outcome") in {"success", "failure", "error"}
+        ]
         successes = sum(event.get("outcome") == "success" for event in definitive)
-        failures = sum(event.get("outcome") in {"failure", "error"} for event in definitive)
+        failure_count = sum(
+            event.get("outcome") in {"failure", "error"} for event in definitive
+        )
         durations = [
             float(event["duration_ms"])
             for event in samples
@@ -156,54 +182,84 @@ def build_intelligence_report(store: Store, *, event_limit: int = 1000) -> dict[
             and 0 <= event["duration_ms"] < float("inf")
         ]
         enough = len(definitive) >= 10
-        agent_profiles.append({
-            "agent": agent,
-            "event_count": len(samples),
-            "definitive_outcome_count": len(definitive),
-            "success_count": successes,
-            "failure_or_error_count": failures,
-            "success_rate": round(successes / len(definitive), 4) if definitive else None,
-            "mean_observed_duration_ms": round(sum(durations) / len(durations), 3) if durations else None,
-            "confidence": "eligible_for_review" if enough else "insufficient_evidence",
-            "evidence_event_ids": [event["event_id"] for event in samples[:20]],
-        })
+        agent_profiles.append(
+            {
+                "agent": agent,
+                "event_count": len(samples),
+                "definitive_outcome_count": len(definitive),
+                "success_count": successes,
+                "failure_or_error_count": failure_count,
+                "success_rate": round(successes / len(definitive), 4)
+                if definitive
+                else None,
+                "mean_observed_duration_ms": round(sum(durations) / len(durations), 3)
+                if durations
+                else None,
+                "confidence": "eligible_for_review"
+                if enough
+                else "insufficient_evidence",
+                "evidence_event_ids": [event["event_id"] for event in samples[:20]],
+            }
+        )
 
-    failures = [event for event in events if event.get("outcome") in {"failure", "error"}]
+    failures = [
+        event for event in events if event.get("outcome") in {"failure", "error"}
+    ]
     failure_groups: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
     for event in failures:
         failure_groups[_signature(event)].append(event)
     failure_memory = []
-    for signature, samples in sorted(failure_groups.items(), key=lambda pair: (-len(pair[1]), pair[0])):
-        failure_memory.append({
-            "component": signature[0],
-            "kind": signature[1],
-            "action": signature[2],
-            "occurrences_in_window": len(samples),
-            "trace_ids": sorted({str(event.get("trace_id")) for event in samples}),
-            "event_ids": [event["event_id"] for event in samples[:20]],
-            "review_priority": "recurrent" if len(samples) >= 2 else "single_observation",
-            "causal_status": "unverified",
-        })
-
-    validated_sources = {event_id for item in validated for event_id in item.get("source_event_ids", [])}
-    regret_candidates = []
-    for signature, samples in failure_groups.items():
-        if len(samples) < 2:
-            continue
-        unresolved = [event for event in samples if event.get("event_id") not in validated_sources]
-        if unresolved:
-            regret_candidates.append({
+    for signature, samples in sorted(
+        failure_groups.items(), key=lambda pair: (-len(pair[1]), pair[0])
+    ):
+        failure_memory.append(
+            {
                 "component": signature[0],
                 "kind": signature[1],
                 "action": signature[2],
-                "repeated_failure_count": len(samples),
-                "unlinked_failure_count": len(unresolved),
-                "evidence_event_ids": [event["event_id"] for event in unresolved[:20]],
-                "regret_score": None,
-                "reason": "Repeated failures have no linked validated experience; cost and avoidability have not been established.",
-                "status": "candidate_for_operator_review",
-            })
-    regret_candidates.sort(key=lambda item: (-item["repeated_failure_count"], item["component"], item["action"]))
+                "occurrences_in_window": len(samples),
+                "trace_ids": sorted({str(event.get("trace_id")) for event in samples}),
+                "event_ids": [event["event_id"] for event in samples[:20]],
+                "review_priority": "recurrent"
+                if len(samples) >= 2
+                else "single_observation",
+                "causal_status": "unverified",
+            }
+        )
+
+    validated_sources = {
+        event_id for item in validated for event_id in item.get("source_event_ids", [])
+    }
+    regret_candidates: list[dict[str, Any]] = []
+    for signature, samples in failure_groups.items():
+        if len(samples) < 2:
+            continue
+        unresolved = [
+            event for event in samples if event.get("event_id") not in validated_sources
+        ]
+        if unresolved:
+            regret_candidates.append(
+                {
+                    "component": signature[0],
+                    "kind": signature[1],
+                    "action": signature[2],
+                    "repeated_failure_count": len(samples),
+                    "unlinked_failure_count": len(unresolved),
+                    "evidence_event_ids": [
+                        event["event_id"] for event in unresolved[:20]
+                    ],
+                    "regret_score": None,
+                    "reason": "Repeated failures have no linked validated experience; cost and avoidability have not been established.",
+                    "status": "candidate_for_operator_review",
+                }
+            )
+    regret_candidates.sort(
+        key=lambda item: (
+            -item["repeated_failure_count"],
+            item["component"],
+            item["action"],
+        )
+    )
 
     validated_by_problem: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for item in validated:
@@ -213,7 +269,13 @@ def build_intelligence_report(store: Store, *, event_limit: int = 1000) -> dict[
             "problem_key": problem,
             "validated_instance_count": len(items),
             "lesson_ids": [item["lesson_id"] for item in items],
-            "source_event_ids": sorted({event_id for item in items for event_id in item.get("source_event_ids", [])}),
+            "source_event_ids": sorted(
+                {
+                    event_id
+                    for item in items
+                    for event_id in item.get("source_event_ids", [])
+                }
+            ),
             "status": "repeated_validated_pattern",
         }
         for problem, items in validated_by_problem.items()
@@ -243,27 +305,50 @@ def build_intelligence_report(store: Store, *, event_limit: int = 1000) -> dict[
     wildcard_risks = []
     for node in nodes:
         evidence = node.get("evidence") or {}
-        if node.get("kind") == "port" and isinstance(evidence, dict) and evidence.get("wildcard_binding"):
-            wildcard_risks.append({
-                "name": node.get("name"),
-                "node_id": node.get("node_id"),
-                "status": node.get("status"),
-                "evidence": evidence,
-            })
+        if (
+            node.get("kind") == "port"
+            and isinstance(evidence, dict)
+            and evidence.get("wildcard_binding")
+        ):
+            wildcard_risks.append(
+                {
+                    "name": node.get("name"),
+                    "node_id": node.get("node_id"),
+                    "status": node.get("status"),
+                    "evidence": evidence,
+                }
+            )
 
     scope_denials = [
-        event for event in events
+        event
+        for event in events
         if event.get("source") == "os29.scope" and event.get("outcome") == "blocked"
     ]
     immune_signals = []
     if scope_denials:
-        immune_signals.append({"signal": "out_of_scope_target_denials", "count": len(scope_denials), "event_ids": [e["event_id"] for e in scope_denials[:20]]})
+        immune_signals.append(
+            {
+                "signal": "out_of_scope_target_denials",
+                "count": len(scope_denials),
+                "event_ids": [e["event_id"] for e in scope_denials[:20]],
+            }
+        )
     if wildcard_risks:
-        immune_signals.append({"signal": "wildcard_listener_binding", "count": len(wildcard_risks), "evidence": wildcard_risks})
+        immune_signals.append(
+            {
+                "signal": "wildcard_listener_binding",
+                "count": len(wildcard_risks),
+                "evidence": wildcard_risks,
+            }
+        )
     recurrent_count = sum(1 for items in failure_groups.values() if len(items) >= 2)
     if recurrent_count:
-        immune_signals.append({"signal": "recurrent_failure_signature", "count": recurrent_count})
-    immune_status = "review_needed" if immune_signals else "no_high_confidence_signal_in_window"
+        immune_signals.append(
+            {"signal": "recurrent_failure_signature", "count": recurrent_count}
+        )
+    immune_status = (
+        "review_needed" if immune_signals else "no_high_confidence_signal_in_window"
+    )
 
     temporal_branches = [_temporal_branch(event) for event in failures[:10]]
 
@@ -271,11 +356,17 @@ def build_intelligence_report(store: Store, *, event_limit: int = 1000) -> dict[
     resource_pressures = resource_snapshot.get("pressure_signals", [])
     resource_recommendations = []
     if "cpu_pressure" in resource_pressures or "memory_pressure" in resource_pressures:
-        resource_recommendations.append("Prefer incremental reads and bounded batches until CPU/RAM pressure declines.")
+        resource_recommendations.append(
+            "Prefer incremental reads and bounded batches until CPU/RAM pressure declines."
+        )
     if "disk_pressure" in resource_pressures:
-        resource_recommendations.append("Review capture retention and artifact size before starting additional capture jobs.")
+        resource_recommendations.append(
+            "Review capture retention and artifact size before starting additional capture jobs."
+        )
     if not resource_recommendations:
-        resource_recommendations.append("No configured CPU/RAM/disk pressure threshold was crossed in this sample.")
+        resource_recommendations.append(
+            "No configured CPU/RAM/disk pressure threshold was crossed in this sample."
+        )
     return {
         "schema_version": "os29.intelligence_report.v1",
         "generated_at": _utc_now(),
@@ -316,7 +407,11 @@ def build_intelligence_report(store: Store, *, event_limit: int = 1000) -> dict[
             "candidate_experience_count": len(candidates),
             "distilled_validated_patterns": distilled_skills,
             "candidate_lessons_not_promoted": [
-                {"lesson_id": item["lesson_id"], "problem_key": item["problem_key"], "source_event_ids": item["source_event_ids"]}
+                {
+                    "lesson_id": item["lesson_id"],
+                    "problem_key": item["problem_key"],
+                    "source_event_ids": item["source_event_ids"],
+                }
                 for item in candidates[:50]
             ],
             "note": "Synthetic-only lessons are excluded; no skill or memory is promoted from an unvalidated candidate.",
@@ -337,7 +432,9 @@ def build_intelligence_report(store: Store, *, event_limit: int = 1000) -> dict[
                 "Review whether offline services are intentionally disabled before starting anything.",
                 "Connect one explicitly approved test app to complete Frida-to-HTTP trace correlation.",
                 "Validate a real fix/retest before promoting an experience.",
-            ] if not validated else [
+            ]
+            if not validated
+            else [
                 "Measure subsequent-session retrieval of validated experiences against a known test result.",
             ],
         },

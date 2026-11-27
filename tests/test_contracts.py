@@ -3,7 +3,14 @@ from os29.contracts import attest, make_attestation, registry
 
 def test_contract_registry_is_versioned():
     r = registry()
-    assert {"capability", "trace", "checkpoint", "evidence", "sentinel", "antirepeat"} <= set(r)
+    assert {
+        "capability",
+        "trace",
+        "checkpoint",
+        "evidence",
+        "sentinel",
+        "antirepeat",
+    } <= set(r)
     assert all(v["version"] == "v1" for v in r.values())
 
 

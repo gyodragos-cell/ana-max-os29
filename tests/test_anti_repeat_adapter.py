@@ -10,7 +10,10 @@ def test_record_adapter_is_read_only_contract():
 
 def test_json_fixture_adapter(tmp_path):
     fixture = tmp_path / "task.json"
-    fixture.write_text(json.dumps({"task_id": "t", "agent": "pi", "workspace": "lab"}), encoding="utf-8")
+    fixture.write_text(
+        json.dumps({"task_id": "t", "agent": "pi", "workspace": "lab"}),
+        encoding="utf-8",
+    )
     assert evaluate_json_file(fixture)["status"] == "NEW_TASK"
 
 

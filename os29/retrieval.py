@@ -4,13 +4,22 @@ import hashlib
 import json
 import re
 from collections import Counter
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .redaction import redact_value, sanitize_url
 from .store import Store
 
-SOURCE_TYPES = {"event", "incident", "capsule", "experience", "capability", "document", "session"}
+SOURCE_TYPES = {
+    "event",
+    "incident",
+    "capsule",
+    "experience",
+    "capability",
+    "document",
+    "session",
+}
 MAX_DOCUMENT_CHARS = 16_000
 MAX_QUERY_CHARS = 500
 MAX_QUERY_TERMS = 12
@@ -19,9 +28,23 @@ MAX_LOCAL_FILES = 200
 MAX_LOCAL_SOURCE_BYTES = 8 * 1024 * 1024
 LOCAL_TEXT_EXTENSIONS = {".md", ".txt", ".rst"}
 EVENT_ATTRIBUTE_ALLOWLIST = {
-    "status_code", "response_code", "exception_type", "error_type", "error_code",
-    "method", "http_method", "tool_name", "operation", "agent_name", "verification",
-    "exit_code", "host", "port", "scheme", "span_id", "capability_name",
+    "status_code",
+    "response_code",
+    "exception_type",
+    "error_type",
+    "error_code",
+    "method",
+    "http_method",
+    "tool_name",
+    "operation",
+    "agent_name",
+    "verification",
+    "exit_code",
+    "host",
+    "port",
+    "scheme",
+    "span_id",
+    "capability_name",
     "capability_kind",
 }
 
@@ -36,8 +59,15 @@ def _text(value: Any, max_chars: int = 4000) -> str:
 
 
 def _document(
-    *, doc_id: str, source_type: str, source_ref: str, title: str, body: str,
-    trust_status: str, observed_at: str, metadata: dict[str, Any] | None = None,
+    *,
+    doc_id: str,
+    source_type: str,
+    source_ref: str,
+    title: str,
+    body: str,
+    trust_status: str,
+    observed_at: str,
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     safe_title = _text(title, 500)
     safe_body = _text(body, MAX_DOCUMENT_CHARS)
@@ -54,13 +84,17 @@ def _document(
         "observed_at": _text(observed_at or "", 100),
         "metadata": safe_metadata,
     }
-    canonical = json.dumps(core, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    canonical = json.dumps(
+        core, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+    )
     core["content_hash"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return core
 
 
 def _event_document(event: dict[str, Any]) -> dict[str, Any]:
-    attributes = event.get("attributes") if isinstance(event.get("attributes"), dict) else {}
+    attributes = event.get("attributes")
+    if not isinstance(attributes, dict):
+        attributes = {}
     safe_attributes: dict[str, Any] = {}
     for key in sorted(EVENT_ATTRIBUTE_ALLOWLIST):
         if key not in attributes:
@@ -88,7 +122,9 @@ def _event_document(event: dict[str, Any]) -> dict[str, Any]:
         "target": safe_target,
         "attributes": safe_attributes,
     }
-    label = " ".join(str(event.get(k, "")) for k in ("component", "kind", "action", "outcome"))
+    label = " ".join(
+        str(event.get(k, "")) for k in ("component", "kind", "action", "outcome")
+    )
     return _document(
         doc_id=f"event:{event['event_id']}",
         source_type="event",
@@ -113,8 +149,11 @@ def _local_document_sources(store: Store) -> list[dict[str, Any]]:
     db_parent = store.db_path.parent
     roots = [db_parent, db_parent.parent]
     config_path = next(
-        (root / "config" / "memory_sources.json" for root in roots
-         if (root / "config" / "memory_sources.json").is_file()),
+        (
+            root / "config" / "memory_sources.json"
+            for root in roots
+            if (root / "config" / "memory_sources.json").is_file()
+        ),
         None,
     )
     if config_path is None:
@@ -130,9 +169,23 @@ def _local_document_sources(store: Store) -> list[dict[str, Any]]:
     if not isinstance(raw_limits, dict):
         raw_limits = {}
     try:
-        file_byte_limit = max(1, min(int(raw_limits.get("max_file_bytes", MAX_LOCAL_FILE_BYTES)), MAX_LOCAL_FILE_BYTES))
-        total_byte_limit = max(1, min(int(raw_limits.get("max_total_source_bytes", MAX_LOCAL_SOURCE_BYTES)), MAX_LOCAL_SOURCE_BYTES))
-        file_count_limit = max(1, min(int(raw_limits.get("max_files", MAX_LOCAL_FILES)), MAX_LOCAL_FILES))
+        file_byte_limit = max(
+            1,
+            min(
+                int(raw_limits.get("max_file_bytes", MAX_LOCAL_FILE_BYTES)),
+                MAX_LOCAL_FILE_BYTES,
+            ),
+        )
+        total_byte_limit = max(
+            1,
+            min(
+                int(raw_limits.get("max_total_source_bytes", MAX_LOCAL_SOURCE_BYTES)),
+                MAX_LOCAL_SOURCE_BYTES,
+            ),
+        )
+        file_count_limit = max(
+            1, min(int(raw_limits.get("max_files", MAX_LOCAL_FILES)), MAX_LOCAL_FILES)
+        )
     except (TypeError, ValueError):
         return []
 
@@ -150,7 +203,10 @@ def _local_document_sources(store: Store) -> list[dict[str, Any]]:
                 return
             resolved = candidate_path.resolve()
             key = str(resolved).casefold()
-            if resolved.suffix.lower() not in LOCAL_TEXT_EXTENSIONS or key in seen_paths:
+            if (
+                resolved.suffix.lower() not in LOCAL_TEXT_EXTENSIONS
+                or key in seen_paths
+            ):
                 return
             seen_paths.add(key)
             paths.append(resolved)
@@ -215,34 +271,40 @@ def _local_document_sources(store: Store) -> list[dict[str, Any]]:
                     chunks.append(piece)
                 if not paragraph:
                     continue
-                candidate = (current + "\n\n" + paragraph).strip() if current else paragraph
-                if len(candidate) > 8000 and current:
+                candidate_text = (
+                    (current + "\n\n" + paragraph).strip() if current else paragraph
+                )
+                if len(candidate_text) > 8000 and current:
                     chunks.append(current)
                     current = paragraph
                 else:
-                    current = candidate
+                    current = candidate_text
             if current:
                 chunks.append(current)
-            path_hash = hashlib.sha256(str(path).casefold().encode("utf-8")).hexdigest()[:20]
+            path_hash = hashlib.sha256(
+                str(path).casefold().encode("utf-8")
+            ).hexdigest()[:20]
             modified = str(path.stat().st_mtime)
             for index, chunk in enumerate(chunks, start=1):
                 headings = re.findall(r"(?m)^#{1,6}\s+(.+)$", chunk)
                 heading = headings[-1].strip()[:120] if headings else f"chunk {index}"
-                output.append(_document(
-                    doc_id=f"document:{path_hash}:{index:04d}",
-                    source_type="document",
-                    source_ref=str(path),
-                    title=f"{path.name} — {heading}",
-                    body=chunk,
-                    trust_status="local_document",
-                    observed_at=modified,
-                    metadata={
-                        "path": str(path),
-                        "chunk_index": index,
-                        "file_size_bytes": size,
-                        "modified_timestamp": modified,
-                    },
-                ))
+                output.append(
+                    _document(
+                        doc_id=f"document:{path_hash}:{index:04d}",
+                        source_type="document",
+                        source_ref=str(path),
+                        title=f"{path.name} — {heading}",
+                        body=chunk,
+                        trust_status="local_document",
+                        observed_at=modified,
+                        metadata={
+                            "path": str(path),
+                            "chunk_index": index,
+                            "file_size_bytes": size,
+                            "modified_timestamp": modified,
+                        },
+                    )
+                )
                 if len(output) >= file_count_limit * 16:
                     return output
         except (OSError, UnicodeError):
@@ -256,9 +318,15 @@ def _source_documents(store: Store) -> list[dict[str, Any]]:
         event_rows = conn.execute(
             "SELECT event_json FROM trace_events ORDER BY timestamp DESC LIMIT 50000"
         ).fetchall()
-        incident_rows = conn.execute("SELECT * FROM incidents ORDER BY updated_at DESC LIMIT 10000").fetchall()
-        capsule_rows = conn.execute("SELECT * FROM mission_capsules ORDER BY updated_at DESC LIMIT 5000").fetchall()
-        experience_rows = conn.execute("SELECT * FROM experiences ORDER BY updated_at DESC LIMIT 20000").fetchall()
+        incident_rows = conn.execute(
+            "SELECT * FROM incidents ORDER BY updated_at DESC LIMIT 10000"
+        ).fetchall()
+        capsule_rows = conn.execute(
+            "SELECT * FROM mission_capsules ORDER BY updated_at DESC LIMIT 5000"
+        ).fetchall()
+        experience_rows = conn.execute(
+            "SELECT * FROM experiences ORDER BY updated_at DESC LIMIT 20000"
+        ).fetchall()
         capability_rows = conn.execute(
             "SELECT kind, name, status, owner, observed_at FROM capability_nodes ORDER BY observed_at DESC LIMIT 10000"
         ).fetchall()
@@ -277,17 +345,31 @@ def _source_documents(store: Store) -> list[dict[str, Any]]:
 
     for row in incident_rows:
         evidence_ids = json.loads(row["evidence_event_ids_json"])
-        body = " ".join([
-            str(row["summary"]), str(row["cause_hypothesis"]),
-            " ".join(str(x) for x in evidence_ids),
-        ])
-        docs.append(_document(
-            doc_id=f"incident:{row['incident_id']}", source_type="incident",
-            source_ref=row["incident_id"], title=row["title"], body=body,
-            trust_status="unverified_hypothesis" if "UNVERIFIED" in str(row["cause_hypothesis"]).upper() else row["status"],
-            observed_at=row["updated_at"],
-            metadata={"incident_id": row["incident_id"], "trace_id": row["trace_id"], "status": row["status"]},
-        ))
+        body = " ".join(
+            [
+                str(row["summary"]),
+                str(row["cause_hypothesis"]),
+                " ".join(str(x) for x in evidence_ids),
+            ]
+        )
+        docs.append(
+            _document(
+                doc_id=f"incident:{row['incident_id']}",
+                source_type="incident",
+                source_ref=row["incident_id"],
+                title=row["title"],
+                body=body,
+                trust_status="unverified_hypothesis"
+                if "UNVERIFIED" in str(row["cause_hypothesis"]).upper()
+                else row["status"],
+                observed_at=row["updated_at"],
+                metadata={
+                    "incident_id": row["incident_id"],
+                    "trace_id": row["trace_id"],
+                    "status": row["status"],
+                },
+            )
+        )
 
     for row in capsule_rows:
         try:
@@ -296,23 +378,49 @@ def _source_documents(store: Store) -> list[dict[str, Any]]:
             continue
         # Index the mission-relevant summary only; avoid bulk payloads and arbitrary nested dumps.
         parts: list[str] = []
-        for field in ("project", "objective", "status", "known_good", "known_bad", "open_issues", "next_steps"):
+        for field in (
+            "project",
+            "objective",
+            "status",
+            "known_good",
+            "known_bad",
+            "open_issues",
+            "next_steps",
+        ):
             if field in capsule:
                 parts.append(f"{field}: {_text(capsule[field], 2500)}")
         current = capsule.get("current_state")
         if isinstance(current, dict):
-            useful = {key: current[key] for key in (
-                "checkpoint", "stage", "status", "latest_test_result", "root", "mission_id"
-            ) if key in current}
+            useful = {
+                key: current[key]
+                for key in (
+                    "checkpoint",
+                    "stage",
+                    "status",
+                    "latest_test_result",
+                    "root",
+                    "mission_id",
+                )
+                if key in current
+            }
             if useful:
                 parts.append("current_state: " + _text(useful, 1000))
-        docs.append(_document(
-            doc_id=f"capsule:{row['mission_id']}", source_type="capsule",
-            source_ref=row["mission_id"], title=f"{row['project']} mission capsule",
-            body="\n".join(parts), trust_status=str(row["status"]),
-            observed_at=row["updated_at"],
-            metadata={"mission_id": row["mission_id"], "project": row["project"], "status": row["status"]},
-        ))
+        docs.append(
+            _document(
+                doc_id=f"capsule:{row['mission_id']}",
+                source_type="capsule",
+                source_ref=row["mission_id"],
+                title=f"{row['project']} mission capsule",
+                body="\n".join(parts),
+                trust_status=str(row["status"]),
+                observed_at=row["updated_at"],
+                metadata={
+                    "mission_id": row["mission_id"],
+                    "project": row["project"],
+                    "status": row["status"],
+                },
+            )
+        )
 
     for row in experience_rows:
         source_ids = json.loads(row["source_event_ids_json"])
@@ -323,53 +431,83 @@ def _source_documents(store: Store) -> list[dict[str, Any]]:
             f"outcome: {row['outcome']}\n"
             f"source event ids: {' '.join(str(x) for x in source_ids)}"
         )
-        docs.append(_document(
-            doc_id=f"experience:{row['lesson_id']}", source_type="experience",
-            source_ref=row["lesson_id"], title=row["problem_key"], body=body,
-            trust_status=row["status"], observed_at=row["updated_at"],
-            metadata={
-                "lesson_id": row["lesson_id"], "status": row["status"],
-                "outcome": row["outcome"], "confidence": row["confidence"],
-                "verified_by": row["verified_by"], "source_event_ids": source_ids,
-            },
-        ))
+        docs.append(
+            _document(
+                doc_id=f"experience:{row['lesson_id']}",
+                source_type="experience",
+                source_ref=row["lesson_id"],
+                title=row["problem_key"],
+                body=body,
+                trust_status=row["status"],
+                observed_at=row["updated_at"],
+                metadata={
+                    "lesson_id": row["lesson_id"],
+                    "status": row["status"],
+                    "outcome": row["outcome"],
+                    "confidence": row["confidence"],
+                    "verified_by": row["verified_by"],
+                    "source_event_ids": source_ids,
+                },
+            )
+        )
 
     for row in capability_rows:
         title = f"{row['kind']} {row['name']}"
         body = f"kind: {row['kind']}\nname: {row['name']}\nstatus: {row['status']}\nowner: {row['owner'] or ''}"
-        docs.append(_document(
-            doc_id=f"capability:{row['kind']}:{row['name']}", source_type="capability",
-            source_ref=f"{row['kind']}:{row['name']}", title=title, body=body,
-            trust_status=row["status"], observed_at=row["observed_at"],
-            metadata={"kind": row["kind"], "name": row["name"], "status": row["status"], "owner": row["owner"]},
-        ))
+        docs.append(
+            _document(
+                doc_id=f"capability:{row['kind']}:{row['name']}",
+                source_type="capability",
+                source_ref=f"{row['kind']}:{row['name']}",
+                title=title,
+                body=body,
+                trust_status=row["status"],
+                observed_at=row["observed_at"],
+                metadata={
+                    "kind": row["kind"],
+                    "name": row["name"],
+                    "status": row["status"],
+                    "owner": row["owner"],
+                },
+            )
+        )
     for row in session_rows:
         try:
             payload = json.loads(row["payload_json"])
         except (json.JSONDecodeError, TypeError):
             continue
         # Index concise session facts; full transcript excerpts remain bounded and redacted.
-        body = "\n".join([
-            f"source: {row['source']}",
-            f"session_id: {row['session_id']}",
-            f"summary: {payload.get('summary', '')}",
-            f"objective: {payload.get('objective', '')}",
-            f"decisions: {_text(payload.get('decisions', []), 2500)}",
-            f"tests: {_text(payload.get('tests', []), 2500)}",
-            f"files_changed: {_text(payload.get('files_changed', []), 2500)}",
-            f"incidents: {_text(payload.get('incidents', []), 2000)}",
-            f"next_steps: {_text(payload.get('next_steps', []), 2500)}",
-            f"transcript_excerpt: {_text(payload.get('transcript_excerpt', ''), 10000)}",
-        ])
-        docs.append(_document(
-            doc_id=f"session:{row['session_id']}", source_type="session",
-            source_ref=row["session_id"], title=row["title"], body=body,
-            trust_status="local_session_record", observed_at=row["created_at"],
-            metadata={
-                "record_ref": row["session_id"], "source": row["source"],
-                "content_hash": row["content_hash"], "redaction_count": row["redaction_count"],
-            },
-        ))
+        body = "\n".join(
+            [
+                f"source: {row['source']}",
+                f"session_id: {row['session_id']}",
+                f"summary: {payload.get('summary', '')}",
+                f"objective: {payload.get('objective', '')}",
+                f"decisions: {_text(payload.get('decisions', []), 2500)}",
+                f"tests: {_text(payload.get('tests', []), 2500)}",
+                f"files_changed: {_text(payload.get('files_changed', []), 2500)}",
+                f"incidents: {_text(payload.get('incidents', []), 2000)}",
+                f"next_steps: {_text(payload.get('next_steps', []), 2500)}",
+                f"transcript_excerpt: {_text(payload.get('transcript_excerpt', ''), 10000)}",
+            ]
+        )
+        docs.append(
+            _document(
+                doc_id=f"session:{row['session_id']}",
+                source_type="session",
+                source_ref=row["session_id"],
+                title=row["title"],
+                body=body,
+                trust_status="local_session_record",
+                observed_at=row["created_at"],
+                metadata={
+                    "record_ref": row["session_id"],
+                    "source": row["source"],
+                    "content_hash": row["content_hash"],
+                    "redaction_count": row["redaction_count"],
+                },
+            )
+        )
     docs.extend(_local_document_sources(store))
     return docs
 
@@ -379,7 +517,9 @@ def refresh_memory_index(store: Store) -> dict[str, Any]:
     docs = _source_documents(store)
     inserted = updated = unchanged = 0
     with store._connect() as conn:
-        existing_rows = conn.execute("SELECT doc_id, content_hash FROM memory_documents").fetchall()
+        existing_rows = conn.execute(
+            "SELECT doc_id, content_hash FROM memory_documents"
+        ).fetchall()
         existing = {row["doc_id"]: row["content_hash"] for row in existing_rows}
         desired_ids = {doc["doc_id"] for doc in docs}
 
@@ -402,14 +542,26 @@ def refresh_memory_index(store: Store) -> dict[str, Any]:
                      trust_status=excluded.trust_status, observed_at=excluded.observed_at,
                      metadata_json=excluded.metadata_json, content_hash=excluded.content_hash""",
                 (
-                    doc["doc_id"], doc["source_type"], doc["source_ref"], doc["title"], doc["body"],
-                    doc["trust_status"], doc["observed_at"],
-                    json.dumps(doc["metadata"], ensure_ascii=True, sort_keys=True), doc["content_hash"],
+                    doc["doc_id"],
+                    doc["source_type"],
+                    doc["source_ref"],
+                    doc["title"],
+                    doc["body"],
+                    doc["trust_status"],
+                    doc["observed_at"],
+                    json.dumps(doc["metadata"], ensure_ascii=True, sort_keys=True),
+                    doc["content_hash"],
                 ),
             )
             conn.execute(
                 "INSERT INTO memory_fts(doc_id, source_type, trust_status, title, body) VALUES (?, ?, ?, ?, ?)",
-                (doc["doc_id"], doc["source_type"], doc["trust_status"], doc["title"], doc["body"]),
+                (
+                    doc["doc_id"],
+                    doc["source_type"],
+                    doc["trust_status"],
+                    doc["title"],
+                    doc["body"],
+                ),
             )
 
         stale = set(existing) - desired_ids
@@ -459,11 +611,17 @@ def search_memory(
         if len(terms) >= MAX_QUERY_TERMS:
             break
     if not terms:
-        raise ValueError("query must contain at least one searchable term of 2+ characters")
+        raise ValueError(
+            "query must contain at least one searchable term of 2+ characters"
+        )
     # Each user term is quoted independently so FTS operators/punctuation are not executable syntax.
-    match_expression = " OR ".join('"' + term.replace('"', '""') + '"' for term in terms)
+    match_expression = " OR ".join(
+        '"' + term.replace('"', '""') + '"' for term in terms
+    )
 
-    index_status = refresh_memory_index(store) if refresh else None
+    index_status = (
+        refresh_memory_index(store) if refresh and not store.read_only else None
+    )
     filters: list[str] = []
     params: list[Any] = [match_expression]
     if include_candidates:
@@ -471,7 +629,9 @@ def search_memory(
     else:
         filters.append("d.trust_status NOT IN ('candidate', 'rejected')")
     if selected_sources:
-        filters.append("d.source_type IN (" + ",".join("?" for _ in selected_sources) + ")")
+        filters.append(
+            "d.source_type IN (" + ",".join("?" for _ in selected_sources) + ")"
+        )
         params.extend(selected_sources)
     where = (" AND " + " AND ".join(filters)) if filters else ""
 
@@ -491,17 +651,19 @@ def search_memory(
 
     results = []
     for row in rows:
-        results.append({
-            "doc_id": row["doc_id"],
-            "source_type": row["source_type"],
-            "source_ref": row["source_ref"],
-            "title": row["title"],
-            "trust_status": row["trust_status"],
-            "observed_at": row["observed_at"],
-            "relevance_score": round(max(0.0, -float(row["rank"])), 8),
-            "excerpt": row["excerpt"],
-            "metadata": json.loads(row["metadata_json"]),
-        })
+        results.append(
+            {
+                "doc_id": row["doc_id"],
+                "source_type": row["source_type"],
+                "source_ref": row["source_ref"],
+                "title": row["title"],
+                "trust_status": row["trust_status"],
+                "observed_at": row["observed_at"],
+                "relevance_score": round(max(0.0, -float(row["rank"])), 8),
+                "excerpt": row["excerpt"],
+                "metadata": json.loads(row["metadata_json"]),
+            }
+        )
     return {
         "query": query,
         "backend": "sqlite_fts5",

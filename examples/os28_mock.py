@@ -1,4 +1,5 @@
 """Demonstrate the optional provider interface without a network."""
+
 from integrations.os28 import MockOS28Provider
 
 provider = MockOS28Provider()
