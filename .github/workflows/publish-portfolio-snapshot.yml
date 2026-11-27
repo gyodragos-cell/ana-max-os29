@@ -1,0 +1,62 @@
+name: Publish verified portfolio snapshot
+
+on:
+  push:
+    tags:
+      - 'portfolio-2026.11.27'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require a tag on the current public main
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)"
+          test -s docs/RELEASE_PORTFOLIO_20261127.md
+          test -s docs/RELEASE_LEGACY_V22.md
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install -e ".[test]"
+      - run: python -m pytest -q
+      - run: python -m compileall -q os29 integrations
+      - run: node --check integrations/frida/os29_trace.js
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish tested snapshot and label legacy release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag=portfolio-2026.11.27
+          test "$GITHUB_REF_NAME" = "$tag"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --title "ANA MAX OS29 - Public Tower Control V2 (2026.11.27)" --notes-file docs/RELEASE_PORTFOLIO_20261127.md --latest=true
+          else
+            gh release create "$tag" --verify-tag --title "ANA MAX OS29 - Public Tower Control V2 (2026.11.27)" --notes-file docs/RELEASE_PORTFOLIO_20261127.md --latest
+          fi
+          gh release edit v22.0.0 --title "ANA MAX v2.0.0-RC (historical OS-22)" --notes-file docs/RELEASE_LEGACY_V22.md --prerelease --latest=false
+          test "$(gh api "repos/$GH_REPO/releases/latest" --jq .tag_name)" = "$tag"
+          gh release view "$tag" --json tagName,name,url,isDraft,isPrerelease
