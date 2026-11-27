@@ -28,9 +28,7 @@ def test_redaction_masks_sensitive_keys_and_bearer_text():
 
 
 def test_url_removes_userinfo_and_redacts_sensitive_query():
-    cleaned, count = sanitize_url(
-        "https://user:pass@example.test/v1?api_key=abc123&region=eu"
-    )
+    cleaned, count = sanitize_url("https://user:pass@example.test/v1?api_key=abc123&region=eu")
     assert count >= 1
     assert "user" not in cleaned and "pass" not in cleaned and "abc123" not in cleaned
     assert "example.test" in cleaned
@@ -41,9 +39,7 @@ def test_scope_allows_only_explicit_loopback_host_and_port():
     policy = ScopePolicy(SCOPE)
     assert policy.check_target("http://127.0.0.1:7777/health")["allowed"] is True
     assert policy.check_target("http://localhost:7777/health")["allowed"] is True
-    assert (
-        policy.check_target("http://127.0.0.1:8080/")["reason"] == "port_not_in_scope"
-    )
+    assert policy.check_target("http://127.0.0.1:8080/")["reason"] == "port_not_in_scope"
     assert policy.check_target("https://example.com/")["reason"] == "host_not_in_scope"
     assert (
         policy.check_target("http://user:pass@127.0.0.1:8766/")["reason"]

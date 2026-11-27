@@ -77,9 +77,7 @@ def test_tool_notification_cannot_execute(tmp_path, monkeypatch):
 
 
 def test_response_limit_is_explicit(monkeypatch):
-    monkeypatch.setattr(
-        mcp_stdio, "call_tool", lambda *_: {"value": "x" * MAX_OUTPUT_BYTES}
-    )
+    monkeypatch.setattr(mcp_stdio, "call_tool", lambda *_: {"value": "x" * MAX_OUTPUT_BYTES})
     result = mcp_stdio.handle(call("os29_status", {}))
     assert result["result"]["isError"]
     assert "output exceeds limit" in result["result"]["content"][0]["text"]

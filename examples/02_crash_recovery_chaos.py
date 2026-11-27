@@ -13,7 +13,6 @@ import multiprocessing
 import os
 import sys
 import tempfile
-import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,8 +27,8 @@ sys.path.insert(0, str(ROOT))
 def worker_normal(db_path: str, worker_id: int) -> None:
     """Writes an event, then exits normally."""
     sys.path.insert(0, str(ROOT))
-    from os29.store import Store
     from os29.models import TraceEvent
+    from os29.store import Store
 
     store = Store(db_path)
     store.record_event(
@@ -49,8 +48,8 @@ def worker_normal(db_path: str, worker_id: int) -> None:
 def worker_crash_after_write(db_path: str, worker_id: int) -> None:
     """Writes an event, then hard-exits via os._exit(0) (simulates crash)."""
     sys.path.insert(0, str(ROOT))
-    from os29.store import Store
     from os29.models import TraceEvent
+    from os29.store import Store
 
     store = Store(db_path)
     store.record_event(
@@ -70,8 +69,8 @@ def worker_crash_after_write(db_path: str, worker_id: int) -> None:
 def worker_write_only(db_path: str, worker_id: int) -> None:
     """Writes two events then exits normally — higher write volume."""
     sys.path.insert(0, str(ROOT))
-    from os29.store import Store
     from os29.models import TraceEvent
+    from os29.store import Store
 
     store = Store(db_path)
     for step in range(2):
@@ -109,12 +108,10 @@ def main() -> None:
         sys.path.insert(0, str(ROOT))
         from os29.store import Store
 
-        store = Store(db_path)
+        Store(db_path)
 
         print(f"[chaos] DB: {db_path}")
-        print(
-            f"[chaos] Launching {len(CHAOS_PLAN)} workers (2 will os._exit after write)..."
-        )
+        print(f"[chaos] Launching {len(CHAOS_PLAN)} workers (2 will os._exit after write)...")
 
         ctx = multiprocessing.get_context("spawn")
         procs: list[multiprocessing.Process] = []
@@ -167,4 +164,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    if not __debug__:
+        raise RuntimeError("Run verification examples without Python -O")
     main()

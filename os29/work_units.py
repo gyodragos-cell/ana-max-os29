@@ -82,9 +82,7 @@ class WorkUnitService:
     ) -> dict[str, Any]:
         work_id = _required_text(work_id, "work_id")
         if self.store.get_capsule(work_id):
-            raise ValueError(
-                "work_id already exists; use handoff or evidence receipt instead"
-            )
+            raise ValueError("work_id already exists; use handoff or evidence receipt instead")
         if not isinstance(current_state, dict):
             raise ValueError("current_state must be a JSON object")
         now = utc_now()
@@ -163,9 +161,7 @@ class WorkUnitService:
 
     def list(self, *, limit: int = 50) -> dict[str, Any]:
         items: list[dict[str, Any]] = []
-        for envelope in self.store.list_capsules(
-            limit=max(1, min(int(limit) * 10, 1000))
-        ):
+        for envelope in self.store.list_capsules(limit=max(1, min(int(limit) * 10, 1000))):
             capsule = envelope.get("capsule", {})
             unit = capsule.get("work_unit") if isinstance(capsule, dict) else None
             if isinstance(unit, dict) and unit.get("schema") == WORK_UNIT_SCHEMA:
@@ -208,9 +204,7 @@ class WorkUnitService:
                         or attrs.get("actor_agent") != actor_agent
                         or attrs.get("evidence") != evidence
                     ):
-                        raise ValueError(
-                            "idempotency key conflicts with existing evidence"
-                        )
+                        raise ValueError("idempotency key conflicts with existing evidence")
                     return {
                         "work_id": work_id,
                         "event_id": existing["event_id"],
@@ -307,19 +301,13 @@ class WorkUnitService:
     def resume(self, *, work_id: str, agent_id: str) -> dict[str, Any]:
         result = self.get(work_id=work_id)
         events = self.store.list_trace(result["work_id"])
-        receipts = [
-            event
-            for event in events
-            if event.get("kind") == "work_unit.evidence_receipt"
-        ]
+        receipts = [event for event in events if event.get("kind") == "work_unit.evidence_receipt"]
         result["resumed_by"] = _required_text(agent_id, "agent_id")
         result["latest_evidence_receipt"] = receipts[-1] if receipts else None
         result["evidence_receipt_count"] = len(receipts)
         last_receipt = receipts[-1] if receipts else None
         last_evidence = (
-            last_receipt.get("attributes", {}).get("evidence", {})
-            if last_receipt
-            else {}
+            last_receipt.get("attributes", {}).get("evidence", {}) if last_receipt else {}
         )
         context_lines = [
             "OS29 Work Unit " + result["work_id"],
@@ -327,9 +315,7 @@ class WorkUnitService:
             "State: " + result["status"] + "; owner: " + result["owner_agent"],
             "Revision: " + str(result["revision"]),
             "Current: "
-            + json.dumps(result["current_state"], ensure_ascii=False, sort_keys=True)[
-                :420
-            ],
+            + json.dumps(result["current_state"], ensure_ascii=False, sort_keys=True)[:420],
             "Verified good: " + "; ".join(result["known_good"][-3:]),
             "Known bad: " + "; ".join(result["known_bad"][-2:]),
             "Blockers: " + "; ".join(result["open_issues"][-3:]),
@@ -378,8 +364,7 @@ class WorkUnitService:
             for event in self.store.list_trace(work_id):
                 if (
                     event.get("kind") == "work_unit.checkpoint"
-                    and event.get("attributes", {}).get("idempotency_key")
-                    == idempotency_key
+                    and event.get("attributes", {}).get("idempotency_key") == idempotency_key
                 ):
                     return {
                         **self.get(work_id=work_id),
@@ -394,9 +379,7 @@ class WorkUnitService:
         if capsule["status"] == "completed":
             raise ValueError("cannot checkpoint a completed Work Unit")
         if tests is not None:
-            if not isinstance(tests, list) or any(
-                not isinstance(t, dict) for t in tests
-            ):
+            if not isinstance(tests, list) or any(not isinstance(t, dict) for t in tests):
                 raise ValueError("tests must be a list of objects")
             json.dumps(tests, allow_nan=False)
             unit["tests"] = deepcopy(tests)
@@ -425,9 +408,7 @@ class WorkUnitService:
                 "actor_agent": actor_agent,
                 "revision": expected_revision + 1,
                 "idempotency_key": idempotency_key,
-                "next_action": capsule["next_steps"][0]
-                if capsule["next_steps"]
-                else "",
+                "next_action": capsule["next_steps"][0] if capsule["next_steps"] else "",
                 "files_touched": unit.get("files_touched", []),
                 "test_count": len(unit.get("tests", [])),
             },
@@ -446,9 +427,7 @@ class WorkUnitService:
             "idempotent_replay": False,
         }
 
-    def complete(
-        self, *, work_id: str, actor_agent: str, expected_revision: int
-    ) -> dict[str, Any]:
+    def complete(self, *, work_id: str, actor_agent: str, expected_revision: int) -> dict[str, Any]:
         """Require persisted executable-test evidence before marking completed."""
         actor_agent = _required_text(actor_agent, "actor_agent")
         envelope = self._load(work_id)
@@ -487,8 +466,7 @@ class WorkUnitService:
             if not isinstance(details, dict):
                 continue
             if is_executed_test(details) or any(
-                is_executed_test(details.get(test_name))
-                for test_name in ("smoke", "pytest")
+                is_executed_test(details.get(test_name)) for test_name in ("smoke", "pytest")
             ):
                 proofs.append(event)
         if not proofs:
@@ -573,9 +551,7 @@ class WorkUnitService:
         """Reconstruct machine-readable and human-readable receipts from OS29."""
         work = self.get(work_id=work_id)
         events = self.store.list_trace(work_id)
-        evidence_events = [
-            e for e in events if e.get("kind") == "work_unit.evidence_receipt"
-        ]
+        evidence_events = [e for e in events if e.get("kind") == "work_unit.evidence_receipt"]
         actions = [
             {
                 "event_id": e["event_id"],
@@ -642,16 +618,12 @@ class WorkUnitService:
                 if isinstance(value, dict) and isinstance(value.get("command"), str):
                     checks.append((name, value))
             if not checks:
-                lines.append(
-                    label + ", command='not supplied', exit_code='not verified'"
-                )
+                lines.append(label + ", command='not supplied', exit_code='not verified'")
                 continue
             lines.append(label)
             for name, check in checks:
                 exit_code = check.get("exit_code", "not verified")
-                lines.append(
-                    f"  - {name}: command={check['command']!r}, exit_code={exit_code!r}"
-                )
+                lines.append(f"  - {name}: command={check['command']!r}, exit_code={exit_code!r}")
                 for stream in ("stdout", "stderr"):
                     if isinstance(check.get(stream), str):
                         lines.append(f"    - {stream}: {check[stream][:500]}")
@@ -663,9 +635,7 @@ class WorkUnitService:
             lines.append(f"- {issue}")
         if not work["open_issues"]:
             lines.append("- None recorded")
-        lines.extend(
-            ["", "## Next action", work["next_action"] or "None; work unit is complete"]
-        )
+        lines.extend(["", "## Next action", work["next_action"] or "None; work unit is complete"])
         return {"receipt": receipt, "markdown": "\n".join(lines) + "\n"}
 
     def export_receipt(self, *, work_id: str) -> dict[str, Any]:
@@ -673,8 +643,7 @@ class WorkUnitService:
         exported = self.receipt(work_id=work_id)
         safe_id = _required_text(work_id, "work_id")
         if any(
-            ch
-            not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_."
+            ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_."
             for ch in safe_id
         ):
             raise ValueError(

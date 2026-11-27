@@ -76,21 +76,13 @@ def test_gateway_real_persistence_and_validation(gateway):
         "next_steps": ["test"],
     }
     assert (
-        request(
-            gateway, "POST", "/capsules", {"mission_id": "capsule", "capsule": capsule}
-        )[0]
+        request(gateway, "POST", "/capsules", {"mission_id": "capsule", "capsule": capsule})[0]
         == 201
     )
-    assert (
-        request(gateway, "GET", "/capsules/capsule")[1]["capsule"]["project"]
-        == "public-test"
-    )
+    assert request(gateway, "GET", "/capsules/capsule")[1]["capsule"]["project"] == "public-test"
     capability = {"kind": "service", "name": "fixture", "status": "running"}
     assert request(gateway, "POST", "/capabilities", capability)[0] == 201
-    assert (
-        request(gateway, "GET", "/capabilities")[1]["capabilities"][0]["name"]
-        == "fixture"
-    )
+    assert request(gateway, "GET", "/capabilities")[1]["capabilities"][0]["name"] == "fixture"
     assert request(gateway, "POST", "/not-found", {})[0] == 404
 
 
@@ -108,10 +100,7 @@ def test_gateway_payload_bounds(gateway):
         )[0]
         == 413
     )
-    assert (
-        request(gateway, "POST", "/events", b"", headers={"Content-Length": "bad"})[0]
-        == 411
-    )
+    assert request(gateway, "POST", "/events", b"", headers={"Content-Length": "bad"})[0] == 411
 
 
 def test_gateway_rejects_non_loopback_and_short_credentials(tmp_path):

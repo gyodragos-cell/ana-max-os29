@@ -8,3 +8,11 @@
 - Local privacy scanner, CI, automated tests and isolated smoke.
 - Security boundary and documentation; no private runtime data shipped.
 - Public Git history intentionally left intact.
+
+## Release candidate validation
+
+- Isolated release preview workflow from production Pages.
+- Replaced unreviewed images with synthetic diagrams and kept strict privacy checks.
+- Three-process handoff demo executes real regression commands and records receipts.
+- Added site, workflow and README contract regressions.
+- Documented benchmark scope and comparable top-five ranking metrics.

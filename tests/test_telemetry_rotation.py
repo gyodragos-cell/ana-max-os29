@@ -57,7 +57,7 @@ def test_t1_write_while_reader_open(tmp_path):
 
     def reader():
         try:
-            with open(log, "r", encoding="utf-8", errors="replace") as f:
+            with open(log, encoding="utf-8", errors="replace") as f:
                 while not stop_ev.is_set():
                     f.read()
                     time.sleep(0.02)
@@ -145,17 +145,13 @@ def test_t3_restart_archives_previous_session(tmp_path):
     archives_after = {a.name for a in arch.glob("*.log")}
     new_archives = archives_after - archives_before
 
-    assert archived is not None, (
-        "archive_session returned None for non-empty previous session"
-    )
+    assert archived is not None, "archive_session returned None for non-empty previous session"
     assert new_archives, "No new archive created for previous session"
 
     all_text = "".join(
         (arch / n).read_text(encoding="utf-8", errors="replace") for n in archives_after
     )
-    assert "CRASHED SESSION DATA" in all_text, (
-        "Previous session content missing from archive"
-    )
+    assert "CRASHED SESSION DATA" in all_text, "Previous session content missing from archive"
     assert "previous-session" in all_text, "Reason marker missing from archive"
 
     h.close()
@@ -190,9 +186,7 @@ def test_t4_shutdown_archives_and_no_orphan(tmp_path):
     assert archived is not None, "archive_session returned None after shutdown write"
     assert new_archives, "log_shutdown sequence did not create an archive"
 
-    archive_text = (arch / list(new_archives)[0]).read_text(
-        encoding="utf-8", errors="replace"
-    )
+    archive_text = (arch / next(iter(new_archives))).read_text(encoding="utf-8", errors="replace")
     assert "SHUTDOWN" in archive_text, "Shutdown marker missing from archive"
 
     # No orphan handle: file must be writable/deletable after close()
@@ -237,14 +231,9 @@ def test_t6_closing_reader_does_not_affect_writer(tmp_path):
     _write(h, "startup banner line")
     h._stream.flush()
 
-    # Open a reader — simulates LIVE_CONSOLE Get-Content -Wait
-    reader_fh = open(log, "r", encoding="utf-8", errors="replace")
-
-    for i in range(20):
-        _write(h, f"[TOOL_CALL] tool_{i}  trace=trace-{i}")
-
-    # Close reader — simulates the user closing LIVE_CONSOLE.bat
-    reader_fh.close()
+    with open(log, encoding="utf-8", errors="replace"):
+        for i in range(20):
+            _write(h, f"[TOOL_CALL] tool_{i}  trace=trace-{i}")
 
     write_errors: list[str] = []
     for i in range(20, 40):
@@ -258,7 +247,7 @@ def test_t6_closing_reader_does_not_affect_writer(tmp_path):
 
     assert not write_errors, f"Writer failed after reader close: {write_errors}"
     archives = list(_arch(log).glob("*.log"))
-    total_content = sum(p.stat().st_size for p in [log] + archives if p.exists())
+    total_content = sum(p.stat().st_size for p in [log, *archives] if p.exists())
     assert total_content > 0, "No content in log or archives after writer ran"
 
 
@@ -275,7 +264,7 @@ def test_t7_module_level_startup_shutdown_reload(tmp_path, monkeypatch):
 
     tel = importlib.reload(tel)
 
-    assert tel.SESSION_LOG == tmp_path / "live_session.log"
+    assert tmp_path / "live_session.log" == tel.SESSION_LOG
 
     tel.log_startup(server_name="test-srv", db_path="test-db")
     tel.log_tool_call("probe_tool", "trace-abc", "key=val")

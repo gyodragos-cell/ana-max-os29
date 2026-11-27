@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OS29 Core — Local Evidence &amp; Continuity for AI Agents</title>
-<meta name="description" content="OS29 is a production-grade Python library for storing evidence, work units and memory for AI agents. SQLite WAL, MCP STDIO, hash-chain audit, reproducible benchmarks.">
+<title>OS29 Core &mdash; Local Evidence &amp; Continuity for AI Agents</title>
+<meta name="description" content="OS29 is a local-first Python library and MCP STDIO service for AI agent evidence receipts, atomic work-unit continuity, SHA-256 hash-chain verification, and SQLite FTS5/BM25 retrieval.">
 <style>
   :root {
     --bg: #0a0c10;
@@ -16,64 +16,53 @@
     --accent3: #d29922;
     --text: #e6edf3;
     --muted: #8b949e;
-    --danger: #f85149;
-    --hero-glow: rgba(88,166,255,0.15);
+    --hero-glow: rgba(88,166,255,0.16);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; line-height: 1.6; }
 
-  /* NAV */
   nav { position: sticky; top: 0; z-index: 100; background: rgba(10,12,16,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
-  .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .nav-inner { max-width: 1120px; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 56px; }
   .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--accent); letter-spacing: -0.5px; text-decoration: none; }
   .nav-links { display: flex; gap: 1.5rem; list-style: none; }
   .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.875rem; transition: color .15s; }
   .nav-links a:hover { color: var(--text); }
-  .nav-cta { background: var(--accent); color: #000; padding: .4rem 1rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; text-decoration: none; transition: opacity .15s; }
-  .nav-cta:hover { opacity: .85; }
+  .nav-cta { background: var(--accent); color: #000; padding: .4rem 1rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; text-decoration: none; }
 
-  /* HERO */
-  .hero { position: relative; min-height: 92vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-  .hero-bg { position: absolute; inset: 0; background: url('assets/tower-awakens.png') center/cover no-repeat; opacity: .22; }
-  .hero-glow { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); width: 600px; height: 400px; background: radial-gradient(ellipse, var(--hero-glow) 0%, transparent 70%); pointer-events: none; }
-  .hero-content { position: relative; text-align: center; padding: 2rem 1.5rem; max-width: 820px; }
+  .hero { position: relative; min-height: 88vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at center, #1f4975, transparent 72%); opacity: .24; }
+  .hero-glow { position: absolute; top: 18%; left: 50%; transform: translateX(-50%); width: 640px; height: 420px; background: radial-gradient(ellipse, var(--hero-glow) 0%, transparent 70%); pointer-events: none; }
+  .hero-content { position: relative; text-align: center; padding: 2rem 1.5rem; max-width: 840px; }
   .hero-badge { display: inline-block; background: rgba(88,166,255,.12); border: 1px solid rgba(88,166,255,.3); color: var(--accent); font-size: 0.75rem; font-weight: 600; padding: .3rem .9rem; border-radius: 999px; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 1.5rem; }
   h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 1.2rem; }
   h1 span { background: linear-gradient(135deg, var(--accent) 0%, #79c0ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .hero-sub { font-size: 1.15rem; color: var(--muted); max-width: 600px; margin: 0 auto 2rem; }
+  .hero-sub { font-size: 1.12rem; color: var(--muted); max-width: 640px; margin: 0 auto 2rem; }
   .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-  .btn-primary { background: var(--accent); color: #000; padding: .75rem 1.75rem; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 1rem; transition: opacity .15s; }
-  .btn-primary:hover { opacity: .85; }
-  .btn-ghost { border: 1px solid var(--border); color: var(--text); padding: .75rem 1.75rem; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 1rem; transition: border-color .15s; }
+  .btn-primary { background: var(--accent); color: #000; padding: .75rem 1.75rem; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 1rem; }
+  .btn-ghost { border: 1px solid var(--border); color: var(--text); padding: .75rem 1.75rem; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 1rem; }
   .btn-ghost:hover { border-color: var(--accent); }
-  .install-box { margin-top: 2.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.5rem; display: inline-flex; align-items: center; gap: 1rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .95rem; }
+  .install-box { margin-top: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1.4rem; display: inline-flex; align-items: center; gap: 1rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .9rem; }
   .install-box code { color: var(--accent2); }
-  .copy-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); padding: .3rem .8rem; border-radius: 6px; cursor: pointer; font-size: .8rem; transition: all .15s; }
+  .copy-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); padding: .3rem .8rem; border-radius: 6px; cursor: pointer; font-size: .8rem; }
   .copy-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
 
-  /* STATS STRIP */
   .stats-strip { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .stats-inner { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.5rem; text-align: center; }
-  .stat-num { font-size: 2rem; font-weight: 800; color: var(--accent); }
-  .stat-label { font-size: .8rem; color: var(--muted); margin-top: .2rem; text-transform: uppercase; letter-spacing: .05em; }
+  .stats-inner { max-width: 1120px; margin: 0 auto; padding: 2rem 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.5rem; text-align: center; }
+  .stat-num { font-size: 1.9rem; font-weight: 800; color: var(--accent); }
+  .stat-label { font-size: .78rem; color: var(--muted); margin-top: .2rem; text-transform: uppercase; letter-spacing: .05em; }
 
-  /* SECTIONS */
-  section { padding: 5rem 1.5rem; }
-  .section-inner { max-width: 1100px; margin: 0 auto; }
+  section { padding: 4.5rem 1.5rem; }
+  .section-inner { max-width: 1120px; margin: 0 auto; }
   .section-tag { font-size: .75rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: .75rem; }
-  h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800; letter-spacing: -.5px; margin-bottom: 1rem; }
-  .section-lead { color: var(--muted); font-size: 1.05rem; max-width: 600px; margin-bottom: 3rem; }
+  h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 800; letter-spacing: -.5px; margin-bottom: .9rem; }
+  .section-lead { color: var(--muted); font-size: 1.02rem; max-width: 660px; margin-bottom: 2.5rem; }
 
-  /* CARDS */
   .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; transition: border-color .2s; }
-  .card:hover { border-color: var(--accent); }
-  .card-icon { font-size: 1.5rem; margin-bottom: .75rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }
   .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .5rem; }
   .card p { font-size: .875rem; color: var(--muted); line-height: 1.6; }
 
-  /* SCREENSHOTS */
   .screenshot-block { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; margin-bottom: 4rem; }
   .screenshot-block.reverse { direction: rtl; }
   .screenshot-block.reverse > * { direction: ltr; }
@@ -85,105 +74,85 @@
   .tag.green { background: rgba(63,185,80,.1); border-color: rgba(63,185,80,.2); color: var(--accent2); }
   .tag.yellow { background: rgba(210,153,34,.1); border-color: rgba(210,153,34,.2); color: var(--accent3); }
 
-  /* BENCHMARK */
   .bench-table { width: 100%; border-collapse: collapse; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .85rem; margin-top: 1.5rem; }
   .bench-table th { background: var(--surface2); color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; padding: .75rem 1rem; text-align: left; border: 1px solid var(--border); }
-  .bench-table td { padding: .75rem 1rem; border: 1px solid var(--border); vertical-align: middle; }
+  .bench-table td { padding: .75rem 1rem; border: 1px solid var(--border); }
   .bench-table tr:nth-child(even) td { background: var(--surface); }
   .bench-table tr.winner td { background: rgba(63,185,80,.06); }
   .best { color: var(--accent2); font-weight: 700; }
   .bench-footnote { font-size: .78rem; color: var(--muted); margin-top: .75rem; }
 
-  /* CODE */
-  pre { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; overflow-x: auto; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .85rem; line-height: 1.6; }
+  pre { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; overflow-x: auto; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .84rem; line-height: 1.6; }
   .kw { color: #ff7b72; }
   .str { color: #a5d6ff; }
   .cmt { color: var(--muted); font-style: italic; }
-  .fn { color: #d2a8ff; }
 
-  /* LIFECYCLE */
-  .lifecycle { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-top: 2rem; }
-  .lc-step { flex: 1; min-width: 110px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; text-align: center; }
-  .lc-step h4 { font-size: .75rem; font-weight: 700; margin-top: .4rem; }
-  .lc-step p { font-size: .65rem; color: var(--muted); margin-top: .2rem; }
-  .lc-arrow { color: var(--accent); font-size: 1.2rem; padding: 0 .4rem; flex-shrink: 0; }
+  .inspector { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-top: 2rem; }
+  .inspector-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  .tab-btn { background: var(--surface); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: .45rem .85rem; cursor: pointer; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .8rem; }
+  .tab-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
 
-  /* ARCH */
-  .arch-diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; font-family: 'SFMono-Regular', Consolas, monospace; font-size: .85rem; line-height: 2.1; color: var(--muted); overflow-x: auto; }
-  .hl { color: var(--accent); }
-  .hl2 { color: var(--accent2); }
-  .hl3 { color: var(--accent3); }
-
-  /* FOOTER */
   footer { border-top: 1px solid var(--border); padding: 3rem 1.5rem; text-align: center; color: var(--muted); font-size: .875rem; }
   footer a { color: var(--accent); text-decoration: none; }
   footer a:hover { text-decoration: underline; }
 
-  /* RESPONSIVE */
   @media (max-width: 768px) {
-    .screenshot-block, .team-grid { grid-template-columns: 1fr; }
+    .screenshot-block { grid-template-columns: 1fr; }
     .screenshot-block.reverse { direction: ltr; }
-    .lifecycle { flex-direction: column; align-items: stretch; }
-    .lc-arrow { transform: rotate(90deg); text-align: center; }
     .nav-links { display: none; }
   }
+.diagram { padding: 1.5rem; min-height: 240px; display: grid; align-content: center; gap: 1rem; background: linear-gradient(135deg, rgba(38,70,110,.45), var(--surface)); }
+.diagram-flow { display: flex; flex-wrap: wrap; gap: .7rem; align-items: center; }
+.diagram-node { display: block; border: 1px solid var(--border); border-radius: 8px; padding: .65rem .85rem; background: var(--surface); }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
   <div class="nav-inner">
     <a class="nav-logo" href="#">&#x2B21; OS29</a>
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
-      <li><a href="#live">Live System</a></li>
+      <li><a href="#visuals">Visuals</a></li>
       <li><a href="#benchmarks">Benchmarks</a></li>
       <li><a href="#quickstart">Quickstart</a></li>
-      <li><a href="#architecture">Architecture</a></li>
-      <li><a href="#team">Team</a></li>
+      <li><a href="#inspector">Inspector</a></li>
     </ul>
     <a class="nav-cta" href="https://github.com/gyodragos-cell/ana-max-os29">GitHub &rarr;</a>
   </div>
 </nav>
 
-<!-- HERO -->
 <section class="hero">
   <div class="hero-bg"></div>
   <div class="hero-glow"></div>
   <div class="hero-content">
-    <span class="hero-badge">&#x1F6E1;&#xFE0F; Production-Grade &middot; Open Source &middot; Zero Cloud</span>
+    <span class="hero-badge">Local-First &middot; Open Source &middot; Zero Cloud</span>
     <h1>Local Evidence &amp; Continuity<br>for <span>AI Agents</span></h1>
-    <p class="hero-sub">OS29 gives every AI agent a tamper-evident audit trail, crash-safe work units and sub-millisecond memory &mdash; all running on your machine, offline, with one pip install.</p>
+    <p class="hero-sub">OS29 gives every AI client atomic SQLite WAL work units, SHA-256 hash-chain receipts, bounded MCP STDIO policies, and local FTS5/BM25 retrieval without a required cloud backend.</p>
     <div class="hero-actions">
-      <a class="btn-primary" href="#quickstart">Get Started</a>
-      <a class="btn-ghost" href="https://github.com/gyodragos-cell/ana-max-os29">View on GitHub</a>
+      <a class="btn-primary" href="#quickstart">Quickstart</a>
+      <a class="btn-ghost" href="https://github.com/gyodragos-cell/ana-max-os29">GitHub Repository</a>
     </div>
     <div class="install-box">
-      <code>pip install os29-core</code>
-      <button class="copy-btn" onclick="navigator.clipboard.writeText('pip install os29-core');this.textContent='&#x2713; Copied'">Copy</button>
+      <code>python -m pip install -e ".[test]"</code>
+      <button class="copy-btn" onclick="navigator.clipboard.writeText('python -m pip install -e \".[test]\"');this.textContent='Copied'">Copy</button>
     </div>
   </div>
 </section>
 
-<!-- STATS STRIP -->
 <div class="stats-strip">
   <div class="stats-inner">
     <div>
-      <div class="stat-num">0.06ms</div>
-      <div class="stat-label">FTS5 p50 latency</div>
+      <div class="stat-num">FTS5</div>
+      <div class="stat-label">Local lexical search</div>
     </div>
     <div>
-      <div class="stat-num">89+</div>
-      <div class="stat-label">Tests passing</div>
+      <div class="stat-num">350+</div>
+      <div class="stat-label">Automated tests</div>
     </div>
     <div>
-      <div class="stat-num">100%</div>
-      <div class="stat-label">Offline capable</div>
-    </div>
-    <div>
-      <div class="stat-num">0</div>
-      <div class="stat-label">Cloud dependencies</div>
+      <div class="stat-num">Local</div>
+      <div class="stat-label">Offline runtime</div>
     </div>
     <div>
       <div class="stat-num">SHA-256</div>
@@ -191,302 +160,286 @@
     </div>
     <div>
       <div class="stat-num">MCP</div>
-      <div class="stat-label">STDIO compatible</div>
+      <div class="stat-label">STDIO tool discovery</div>
     </div>
   </div>
 </div>
 
-<!-- FEATURES -->
 <section id="features">
   <div class="section-inner">
-    <div class="section-tag">What it does</div>
-    <h2>Everything an agent needs<br>to remember, audit and resume</h2>
-    <p class="section-lead">Not another model. Not cloud memory. A local SQLite-backed evidence store that survives crashes, restarts and handoffs.</p>
+    <div class="section-tag">Core Guarantees</div>
+    <h2>Verifiable work units that survive crashes and handoffs</h2>
+    <p class="section-lead">Not a language model and not a cloud memory service. A deterministic local persistence layer built on SQLite WAL.</p>
     <div class="cards">
       <div class="card">
-        <div class="card-icon">&#x1F512;</div>
         <h3>Tamper-Evident Hash Chain</h3>
-        <p>Every WorkUnit and EvidenceReceipt is linked by SHA-256 into a verifiable chain. Run <code>os29 verify &lt;id&gt;</code> to confirm cryptographic integrity offline.</p>
+        <p>Every Work Unit transition and evidence receipt records an entry in <code>work_unit_integrity</code> linked via SHA-256. Run <code>python -m os29.cli verify &lt;work_id&gt;</code> offline.</p>
       </div>
       <div class="card">
-        <div class="card-icon">&#x26A1;</div>
-        <h3>SQLite WAL + FTS5/BM25</h3>
-        <p>PRAGMA WAL mode, busy_timeout and foreign keys enabled by default. Full-text search with BM25 ranking at &lt;0.1ms p99 &mdash; zero external dependencies.</p>
+        <h3>Single-Transaction Atomicity</h3>
+        <p>State updates in <code>mission_capsules</code>, evidence rows in <code>trace_events</code>, and integrity hashes commit or roll back together in one SQLite transaction.</p>
       </div>
       <div class="card">
-        <div class="card-icon">&#x1F504;</div>
-        <h3>Crash-Safe Work Units</h3>
-        <p>State + evidence saved in a single atomic transaction. Survive os._exit(23) mid-write. 10 concurrent processes verified with no data loss or corruption.</p>
+        <h3>Crash &amp; Multi-Process Tested</h3>
+        <p>WAL mode with busy timeout and foreign keys enabled. Verified with 10 concurrent Python writers and <code>os._exit(23)</code> hard termination tests.</p>
       </div>
       <div class="card">
-        <div class="card-icon">&#x1F6E1;&#xFE0F;</div>
-        <h3>MCP Policy Guard</h3>
-        <p>Allowlist/denylist per tool, strict per-call timeouts, payload size limits and automatic secret redaction before any write to SQLite.</p>
+        <h3>Bounded MCP Policy Guard</h3>
+        <p><code>os29/mcp_policy.py</code> enforces read-only/dry-run modes, allow/deny lists, workspace confinement, timeout caps, and automatic secret redaction.</p>
       </div>
       <div class="card">
-        <div class="card-icon">&#x1F50D;</div>
-        <h3>Hybrid Retrieval</h3>
-        <p>Lexical FTS5 baseline (zero deps) + optional vector scoring with row-wise L2 normalization. Guard against null/NaN/Inf vectors built-in.</p>
+        <h3>Lexical + Hybrid Retrieval</h3>
+        <p>Zero-dependency FTS5/BM25 baseline paired with optional <code>DeterministicHashEmbedder</code> and validated row-wise L2 vector fusion.</p>
       </div>
       <div class="card">
-        <div class="card-icon">&#x1F3E5;</div>
-        <h3>CLI Doctor + Bench</h3>
-        <p><code>os29 doctor</code> checks DB integrity, WAL health and schema version. <code>os29 bench</code> runs the full reproducible benchmark locally in &lt;30 seconds.</p>
+        <h3>Strict Wire Validation</h3>
+        <p><code>os29/mcp_validation.py</code> rejects duplicate JSON keys, non-finite constants, recursive depth/node bombs, and oversized STDIO frames.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- LIVE SYSTEM -->
-<section id="live" style="background: var(--surface);">
+<section id="visuals" style="background: var(--surface);">
   <div class="section-inner">
-    <div class="section-tag">Running Live</div>
-    <h2>See it in production</h2>
-    <p class="section-lead">Real screenshots from PC1313 &mdash; OS29 running live with ANA MAX, 4-terminal workspace and Tower Control V2 dashboard.</p>
+    <div class="section-tag">System Views</div>
+    <h2>Architecture, Console &amp; Failure Recovery</h2>
+    <p class="section-lead">Synthetic HTML diagrams illustrating how Work Units flow across local processes.</p>
 
     <div class="screenshot-block">
       <div class="screenshot-wrap">
-        <img src="assets/pc-terminal.png" alt="4-pane terminal showing ANA MAX and OS29 running live" loading="lazy">
+        <div class="diagram" role="img" aria-label="Four terminal roles"><span class="tag">DEMO SIMULATION</span><h3>Four terminal roles</h3><div class="diagram-flow"><span class="diagram-node">Agent execution</span><span class="diagram-node">MCP STDIO</span><span class="diagram-node">Work Unit checkpoints</span><span class="diagram-node">Audit stream</span></div></div>
       </div>
       <div class="screenshot-text">
         <span class="tag">DEMO SIMULATION</span>
-        <h3>4-Terminal Live Workspace</h3>
-        <p>ANA MAX agent running with OS29 memory backend. Four concurrent terminal panes: MCP STDIO listener, OS29 store writes, evidence verification and live log stream &mdash; all local, all offline.</p>
+        <h3>Multi-Pane Local Workspace</h3>
+        <p>Four local terminal panes running agent execution, MCP STDIO calls, Work Unit checkpoints, and audit logs against the same SQLite WAL store.</p>
         <span class="tag green">SQLite WAL</span>
         <span class="tag green">MCP STDIO</span>
-        <span class="tag">Evidence Hashing</span>
       </div>
     </div>
 
     <div class="screenshot-block reverse">
       <div class="screenshot-wrap">
-        <img src="assets/tower-dashboard.png" alt="Tower Control V2 dashboard showing OS28/OS29 agent coordination" loading="lazy">
+        <div class="diagram" role="img" aria-label="Work Unit lifecycle"><span class="tag">DEMO SIMULATION</span><h3>Work Unit lifecycle</h3><div class="diagram-flow"><span class="diagram-node">Create</span><span class="diagram-node">Receipt</span><span class="diagram-node">Checkpoint</span><span class="diagram-node">Handoff</span><span class="diagram-node">Verify</span></div></div>
       </div>
       <div class="screenshot-text">
         <span class="tag yellow">DEMO SIMULATION</span>
-        <h3>Tower Control V2 Dashboard</h3>
-        <p>Multi-agent coordination panel. Work Units flowing through OS29: created &rarr; checkpoint &rarr; handoff &rarr; verified. The hash-chain audit trail visible in real time. Zero cloud calls.</p>
-        <span class="tag yellow">Work Units</span>
-        <span class="tag yellow">Hash Chain</span>
-        <span class="tag green">Offline</span>
+        <h3>Coordination Control Preview</h3>
+        <p>Work Units move deterministically across sessions: create &rarr; receipt &rarr; checkpoint &rarr; handoff &rarr; verify, without cloud telemetry.</p>
+        <span class="tag yellow">WorkUnitService</span>
+        <span class="tag yellow">SHA-256 Chain</span>
       </div>
     </div>
 
     <div class="screenshot-block">
       <div class="screenshot-wrap">
-        <img src="assets/readme-mcp.png" alt="GitHub repo showing MCP STDIO integration section" loading="lazy">
+        <div class="diagram" role="img" aria-label="Local evidence index"><span class="tag">DEMO SIMULATION</span><h3>Local evidence index</h3><div class="diagram-flow"><span class="diagram-node">Traces</span><span class="diagram-node">Capsules</span><span class="diagram-node">FTS5 index</span><span class="diagram-node">Search results</span></div></div>
       </div>
       <div class="screenshot-text">
-        <h3>MCP STDIO Integration</h3>
-        <p>OS29 exposes all tools over STDIO JSON-RPC &mdash; the standard MCP protocol. Any MCP-compatible client (Claude, Gemini, OpenAI tool calls) can connect without modification.</p>
-        <span class="tag">JSON-RPC 2.0</span>
-        <span class="tag green">Schema Validated</span>
-        <span class="tag">Policy Guard</span>
+        <h3>Indexed Evidence Sphere</h3>
+        <p>Traces, mission capsules, incidents, and redacted sessions feed a local SQLite FTS5/BM25 corpus &mdash; keeping retrieval fast and inspectable.</p>
+        <span class="tag green">FTS5 / BM25</span>
+        <span class="tag">Secret Redaction</span>
+      </div>
+    </div>
+
+    <div class="screenshot-block reverse">
+      <div class="screenshot-wrap">
+        <div class="diagram" role="img" aria-label="Operator topology"><span class="tag">DEMO SIMULATION</span><h3>Operator topology</h3><div class="diagram-flow"><span class="diagram-node">Role A</span><span class="diagram-node">Local OS29 store</span><span class="diagram-node">Role B</span><span class="diagram-node">Role C</span></div></div>
+      </div>
+      <div class="screenshot-text">
+        <span class="tag">DEMO SIMULATION</span>
+        <h3>Operator Control Topology</h3>
+        <p>Each agent specialist acts within its scoped workspace and writes structured receipts before handing off the Work Unit ID to the next agent.</p>
+      </div>
+    </div>
+
+    <div class="screenshot-block">
+      <div class="screenshot-wrap">
+        <div class="diagram" role="img" aria-label="Recovery after interruption"><span class="tag">DEMO SIMULATION</span><h3>Recovery after interruption</h3><div class="diagram-flow"><span class="diagram-node">Commit checkpoint</span><span class="diagram-node">Process exits</span><span class="diagram-node">Resume by work ID</span><span class="diagram-node">Verify chain</span></div></div>
+      </div>
+      <div class="screenshot-text">
+        <h3>Crash &amp; Signal Recovery</h3>
+        <p><code>examples/02_crash_recovery_chaos.py</code> spawns 5 worker processes and terminates workers via <code>os._exit</code> while preserving committed WAL events.</p>
+        <span class="tag green">os._exit Tested</span>
+      </div>
+    </div>
+
+    <div class="screenshot-block reverse">
+      <div class="screenshot-wrap">
+        <div class="diagram" role="img" aria-label="Handoff by ID"><span class="tag">DEMO SIMULATION</span><h3>Handoff by ID</h3><div class="diagram-flow"><span class="diagram-node">Recover context</span><span class="diagram-node">Check evidence</span><span class="diagram-node">Execute regression</span><span class="diagram-node">Record receipt</span></div></div>
+      </div>
+      <div class="screenshot-text">
+        <span class="tag">DEMO SIMULATION</span>
+        <h3>Model-Neutral Agent Handoff</h3>
+        <p>Any MCP-compatible client resumes an existing task with a single <code>work_id</code>, reading the latest verified checkpoint and open issues.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- BENCHMARKS -->
 <section id="benchmarks">
   <div class="section-inner">
     <div class="section-tag">Reproducible Results</div>
-    <h2>Benchmark: 500 episodes, seed=42</h2>
-    <p class="section-lead">Run locally with <code>python benchmarks/run_benchmark.py</code>. Numbers below are real output from results.json. No synthetic inflation.</p>
+    <h2>Benchmark: 500 synthetic episodes, seed=42</h2>
+    <p class="section-lead">Reproduce offline with <code>python benchmarks/run_benchmark.py</code>. Recorded measurements are in <code>benchmarks/results.json</code>; timings vary by machine.</p>
 
-    <table class="bench-table">
-      <thead>
-        <tr>
-          <th>Strategy</th>
-          <th>p50 (ms)</th>
-          <th>p95 (ms)</th>
-          <th>p99 (ms)</th>
-          <th>Recall@5</th>
-          <th>MRR</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Baseline 1 &mdash; Python dict + LIKE</td>
-          <td>0.0924</td><td>0.0961</td><td>0.1377</td><td>70.0%</td><td>0.3655</td>
-        </tr>
-        <tr>
-          <td>Baseline 2 &mdash; Regex full-scan</td>
-          <td>0.3905</td><td>0.7153</td><td>0.9636</td><td>70.0%</td><td>0.3655</td>
-        </tr>
-        <tr class="winner">
-          <td><strong>OS29 FTS5/BM25 + WAL</strong></td>
-          <td class="best">0.0613</td><td class="best">0.0918</td><td class="best">0.1973</td><td class="best">70.0%</td><td>0.3197</td>
-        </tr>
-      </tbody>
-    </table>
-    <p class="bench-footnote">Source: <code>benchmarks/results.json</code> &mdash; deterministic, reproducible with <code>python benchmarks/run_benchmark.py</code>. FTS5 p50 is 33% faster than dict+LIKE baseline under identical load.</p>
+    <p><a href="https://github.com/gyodragos-cell/ana-max-os29/blob/release/os28-os29-clean/benchmarks/results.json">Read the recorded benchmark results (JSON)</a>. Compare latency and recall at the same cutoff; no universal performance ranking is claimed.</p>
+    <p class="bench-footnote">Synthetic infrastructure benchmark only (`N=500`, `100` queries); measures local lexical retrieval latency and hit rate, not LLM reasoning quality.</p>
   </div>
 </section>
 
-<!-- QUICKSTART -->
 <section id="quickstart" style="background: var(--surface);">
   <div class="section-inner">
-    <div class="section-tag">Get Running in 60 Seconds</div>
-    <h2>Three commands to start</h2>
-    <p class="section-lead">No API keys. No cloud account. No model download. Just Python 3.11+.</p>
+    <div class="section-tag">Run Locally</div>
+    <h2>Verified Quickstart &amp; Examples</h2>
+    <p class="section-lead">Every snippet below maps directly to working code in this repository.</p>
 
-    <pre><span class="cmt"># 1. Clone and install</span>
-git clone https://github.com/gyodragos-cell/ana-max-os29.git
+    <pre><span class="cmt"># 1. Install editable package with test dependencies</span>
+git clone --branch release/os28-os29-clean https://github.com/gyodragos-cell/ana-max-os29.git
 cd ana-max-os29
 python -m venv .venv
-<span class="cmt"># Windows:</span> .venv\Scripts\python -m pip install -e ".[test]"
-<span class="cmt"># Linux/macOS:</span> .venv/bin/python -m pip install -e ".[test]"
+# Activate the virtual environment for your platform first.
+python -m pip install -e ".[test]"
 
-<span class="cmt"># 2. Run all tests (passes in &lt;10 seconds)</span>
+<span class="cmt"># 2. Run verification suite and runnable examples</span>
 python -m pytest -q
+python examples/01_quickstart_work_unit.py
+python examples/02_crash_recovery_chaos.py
+python examples/03_mcp_server_client_e2e.py
+python examples/04_custom_retriever_hybrid.py
+python examples/05_multiagent_handoff_demo.py
+python benchmarks/run_benchmark.py</pre>
 
-<span class="cmt"># 3. Try the CLI</span>
-python -m os29.cli --help</pre>
+    <pre style="margin-top:1.5rem"><span class="cmt"># Real Python API (os29.store + os29.work_units)</span>
+<span class="kw">from</span> os29.store <span class="kw">import</span> Store
+<span class="kw">from</span> os29.work_units <span class="kw">import</span> WorkUnitService
 
-    <div class="section-tag" style="margin-top:3rem">Work Unit Lifecycle</div>
-    <div class="lifecycle">
-      <div class="lc-step"><div>&#x1F195;</div><h4>CREATE</h4><p>os29_work_unit_create</p></div>
-      <div class="lc-arrow">&rarr;</div>
-      <div class="lc-step"><div>&#x1F4CC;</div><h4>CHECKPOINT</h4><p>os29_work_unit_checkpoint</p></div>
-      <div class="lc-arrow">&rarr;</div>
-      <div class="lc-step"><div>&#x2705;</div><h4>EVIDENCE</h4><p>os29_evidence_receipt_record</p></div>
-      <div class="lc-arrow">&rarr;</div>
-      <div class="lc-step"><div>&#x1F91D;</div><h4>HANDOFF</h4><p>os29_work_unit_handoff</p></div>
-      <div class="lc-arrow">&rarr;</div>
-      <div class="lc-step"><div>&#x1F50D;</div><h4>VERIFY</h4><p>os29 verify &lt;id&gt;</p></div>
-    </div>
+store = Store(<span class="str">"demo.db"</span>)
+service = WorkUnitService(store)
 
-    <pre style="margin-top:2rem"><span class="cmt"># Full cycle (examples/01_quickstart_work_unit.py)</span>
-<span class="kw">from</span> os29 <span class="kw">import</span> OS29Store
-
-store = OS29Store(<span class="str">"demo.db"</span>)
-store.initialize()
-
-wu = store.create_work_unit(
-    agent_id=<span class="str">"agent-alpha"</span>,
-    task_description=<span class="str">"Analyze dependency vulnerability"</span>,
+service.create(
+    work_id=<span class="str">"wu-demo-001"</span>,
+    project=<span class="str">"demo"</span>,
+    objective=<span class="str">"Verify build"</span>,
+    owner_agent=<span class="str">"agent-a"</span>,
+    allowed_scope=[<span class="str">"workspace"</span>],
+    current_state={<span class="str">"phase"</span>: <span class="str">"init"</span>},
+    known_good=[], known_bad=[], open_issues=[],
+    next_steps=[<span class="str">"run checks"</span>], context_refs=[],
 )
-store.checkpoint_work_unit(wu.id, <span class="str">"Scanning 142 packages..."</span>)
-store.record_evidence_receipt(wu.id, <span class="str">"No CVEs found in production deps"</span>)
-store.handoff_work_unit(wu.id, to_agent=<span class="str">"agent-beta"</span>)
-
-<span class="cmt"># Cryptographic verification</span>
-result = store.verify_work_unit(wu.id)
-<span class="kw">print</span>(result)  <span class="cmt"># {"valid": true, "hash": "sha256:..."}</span></pre>
+service.record_evidence_receipt(
+    work_id=<span class="str">"wu-demo-001"</span>, actor_agent=<span class="str">"agent-a"</span>,
+    action=<span class="str">"pytest"</span>, outcome=<span class="str">"success"</span>,
+    evidence={<span class="str">"command"</span>: <span class="str">"python -m pytest -q"</span>, <span class="str">"exit_code"</span>: 0, <span class="str">"stdout"</span>: <span class="str">"illustrative receipt only"</span>}, next_action=<span class="str">"handoff"</span>,
+)
+verification = store.verify_work_unit(<span class="str">"wu-demo-001"</span>)
+<span class="kw">print</span>(verification[<span class="str">"valid"</span>], verification[<span class="str">"head_hash"</span>])</pre>
   </div>
 </section>
 
-<!-- ARCHITECTURE -->
-<section id="architecture">
+<section id="inspector">
   <div class="section-inner">
-    <div class="section-tag">How it works</div>
-    <h2>Architecture</h2>
-    <p class="section-lead">OS29 is a pure local layer. No network required. The agent decides what to store; OS29 guarantees it survives.</p>
-
-    <div class="arch-diagram">
-      <span class="hl">Your AI Agent / LLM Client</span><br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MCP STDIO / Python import<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
-      +----------------------------------+<br>
-      |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hl">OS29 Core</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
-      |&nbsp;Policy Guard | MCP Validation&nbsp;&nbsp;|<br>
-      |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
-      |&nbsp;<span class="hl2">Work Units</span>&nbsp;|&nbsp;<span class="hl2">Evidence</span>&nbsp;|&nbsp;<span class="hl2">Search</span>&nbsp;|<br>
-      |&nbsp;Checkpoint | Hash-Chain| FTS5/BM25|<br>
-      |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
-      |&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hl3">SQLite WAL</span> (local file)&nbsp;&nbsp;&nbsp;&nbsp;|<br>
-      +----------------------------------+<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
-      &nbsp;&nbsp;Optional: OS28 provider interface<br>
-      &nbsp;&nbsp;&nbsp;&nbsp;(offline mock by default)
-    </div>
-
-    <div class="cards" style="margin-top:2rem">
-      <div class="card">
-        <h3>SQLite WAL Mode</h3>
-        <p>PRAGMA journal_mode=WAL + busy_timeout=10000ms + foreign_keys=ON. Multiple readers never block writers. Verified with 10 concurrent Python processes.</p>
+    <div class="section-tag">Interactive Walkthrough (DEMO SIMULATION)</div>
+    <h2>Work Unit &amp; Hash-Chain Inspector</h2>
+    <p class="section-lead">Simulated preview of the actual <code>work_unit_integrity</code> JSON structure returned by <code>os29 verify &lt;work_id&gt;</code>.</p>
+    <div class="inspector">
+      <div class="inspector-tabs">
+        <button class="tab-btn active" onclick="showStep(0, this)">1. create</button>
+        <button class="tab-btn" onclick="showStep(1, this)">2. evidence_receipt</button>
+        <button class="tab-btn" onclick="showStep(2, this)">3. checkpoint</button>
+        <button class="tab-btn" onclick="showStep(3, this)">4. handoff</button>
+        <button class="tab-btn" onclick="showStep(4, this)">5. tamper_detected</button>
       </div>
-      <div class="card">
-        <h3>Atomic Transactions</h3>
-        <p>Every state transition writes state + evidence in one transaction. No orphaned state if the process dies mid-write.</p>
-      </div>
-      <div class="card">
-        <h3>MCP STDIO Protocol</h3>
-        <p>JSON-RPC 2.0 over stdin/stdout. Schema-validated. Policy guard runs before every tool execution. No network socket needed.</p>
-      </div>
+      <pre id="inspector-out"></pre>
     </div>
   </div>
 </section>
 
-<!-- TEAM -->
-<section id="team" style="background: var(--surface);">
-  <div class="section-inner">
-    <div class="section-tag">The System</div>
-    <h2>Tower Control &amp; Agent Team</h2>
-    <p class="section-lead">OS29 was built for real multi-agent coordination &mdash; each specialist agent owns its evidence, hands off verified results.</p>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start;margin-top:2rem">
-      <div>
-        <img src="assets/team.png" alt="Justice League of AI agents artwork" loading="lazy" style="width:100%;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)">
-        <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; Agent team artwork</p>
-      </div>
-      <div>
-        <img src="assets/batman-os29.png" alt="Batman operator OS29 artwork" loading="lazy" style="width:100%;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)">
-        <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; OS29 Operator artwork</p>
-        <div class="card" style="margin-top:1.25rem">
-          <div class="card-icon">&#x1F3F0;</div>
-          <h3>Tower Control V2</h3>
-          <p>Coordination layer built on OS29. Routes work units between agents, tracks evidence chains, surfaces stalls and anomalies in real time &mdash; all local.</p>
-        </div>
-      </div>
-    </div>
-
-    <div style="margin-top:3rem">
-      <img src="assets/tower-control.png" alt="Tower of Control OS29 architecture art" loading="lazy" style="width:100%;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)">
-      <p style="font-size:.8rem;color:var(--muted);margin-top:.75rem;text-align:center">DEMO SIMULATION &mdash; Tower Control architecture visualization</p>
-    </div>
-  </div>
-</section>
-
-<!-- BROKEN SIGNAL / CRASH RECOVERY -->
-<section id="signal">
-  <div class="section-inner">
-    <div class="section-tag">When it matters</div>
-    <h2>No more broken signal</h2>
-    <p class="section-lead">AI agents crash. Context windows reset. Without OS29, the work unit is lost. With it, the agent resumes exactly where it stopped &mdash; hash verified.</p>
-    <div class="screenshot-block">
-      <div class="screenshot-wrap">
-        <img src="assets/broken-signal.png" alt="The Broken Signal &mdash; OS29 crash recovery art" loading="lazy">
-      </div>
-      <div class="screenshot-text">
-        <h3>Crash Recovery by Design</h3>
-        <p>Not a promise &mdash; a test. <code>examples/02_crash_recovery_chaos.py</code> spawns 5 real Python processes, each writing checkpoints, then kills them with <code>os._exit(23)</code>. OS29 recovers every work unit.</p>
-        <span class="tag green">os._exit(23) tested</span>
-        <span class="tag green">5 concurrent processes</span>
-        <span class="tag green">Zero data loss verified</span>
-        <pre style="margin-top:1rem;font-size:.78rem;padding:.8rem">python examples/02_crash_recovery_chaos.py
-# Spawning 5 processes...
-# All crashed. Verifying recovery...
-# All 5 work units recovered
-# Hash chain intact</pre>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
 <footer>
   <p>
     <strong style="color:var(--text)">OS29 Core</strong> &mdash; Local evidence &amp; continuity for AI agents<br>
-    <a href="https://github.com/gyodragos-cell/ana-max-os29">GitHub</a> &nbsp;&middot;&nbsp;
-    <a href="https://github.com/gyodragos-cell/ana-max-os29-core">Core Library</a> &nbsp;&middot;&nbsp;
-    <a href="https://github.com/gyodragos-cell/ana-max-os29/blob/main/LICENSE">MIT License</a> &nbsp;&middot;&nbsp;
-    <a href="https://github.com/gyodragos-cell/ana-max-os29/blob/main/docs/ARCHITECTURE.md">Architecture Docs</a>
+    <a href="https://github.com/gyodragos-cell/ana-max-os29">GitHub</a> &middot;
+    <a href="https://github.com/gyodragos-cell/ana-max-os29-core">Core Library</a> &middot;
+    <a href="https://github.com/gyodragos-cell/ana-max-os29/blob/release/os28-os29-clean/docs/PROTOCOL_SPEC.md">Protocol Spec</a> &middot;
+    <a href="https://github.com/gyodragos-cell/ana-max-os29/blob/release/os28-os29-clean/docs/ARCHITECTURE.md">Architecture</a>
   </p>
-  <p style="margin-top:.75rem;font-size:.8rem">All artwork and dashboard images are DEMO SIMULATION visualizations. Benchmark numbers are reproducible: run <code>python benchmarks/run_benchmark.py</code>.</p>
+  <p style="margin-top:.75rem;font-size:.8rem">Visuals marked DEMO SIMULATION are static preview illustrations; live host data is excluded.</p>
 </footer>
 
+<script>
+const STEPS = [
+  {
+    step: "1. create",
+    command: "WorkUnitService(store).create(...)",
+    verify_result: {
+      schema: "os29.work_unit.integrity.v1",
+      work_id: "wu-demo-001",
+      valid: true,
+      entry_count: 1,
+      event_count: 1,
+      head_hash: "8f4e2a... (genesis -> entry 1)",
+      errors: []
+    }
+  },
+  {
+    step: "2. evidence_receipt",
+    command: "service.record_evidence_receipt(..., idempotency_key='r1')",
+    verify_result: {
+      schema: "os29.work_unit.integrity.v1",
+      work_id: "wu-demo-001",
+      valid: true,
+      entry_count: 2,
+      event_count: 2,
+      head_hash: "c19b7d... (linked to entry 1)",
+      errors: []
+    }
+  },
+  {
+    step: "3. checkpoint",
+    command: "service.checkpoint(..., expected_revision=1)",
+    verify_result: {
+      schema: "os29.work_unit.integrity.v1",
+      work_id: "wu-demo-001",
+      valid: true,
+      entry_count: 3,
+      event_count: 3,
+      head_hash: "3d81f0... (atomic capsule + trace_event + integrity row)",
+      errors: []
+    }
+  },
+  {
+    step: "4. handoff",
+    command: "python -m os29.cli verify wu-demo-001 --expected-head <SHA256>",
+    verify_result: {
+      schema: "os29.work_unit.integrity.v1",
+      work_id: "wu-demo-001",
+      valid: true,
+      entry_count: 4,
+      event_count: 4,
+      external_anchor_checked: true,
+      errors: []
+    }
+  },
+  {
+    step: "5. tamper_detected",
+    command: "Simulated SQL mutation on trace_events -> os29 verify wu-demo-001",
+    verify_result: {
+      schema: "os29.work_unit.integrity.v1",
+      work_id: "wu-demo-001",
+      valid: false,
+      entry_count: 4,
+      event_count: 4,
+      errors: ["event_hash_mismatch:2", "entry_hash_mismatch:2"]
+    }
+  }
+];
+function showStep(idx, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('inspector-out').textContent = JSON.stringify(STEPS[idx], null, 2);
+}
+showStep(0, document.querySelector('.tab-btn'));
+</script>
 </body>
 </html>

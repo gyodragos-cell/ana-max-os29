@@ -43,15 +43,10 @@ def test_watchtower_contracts_are_available_and_nonexecuting():
     )
     assert w.trace_lineage.validate({"parent_trace_id": "bad"}).status == "INVALID"
     assert (
-        w.anti_repeat.recommend(
-            {"task_id": "t", "agent": "pi", "workspace": "lab"}
-        ).status
+        w.anti_repeat.recommend({"task_id": "t", "agent": "pi", "workspace": "lab"}).status
         == "NEW_TASK"
     )
-    assert (
-        w.sentinel.observe({"services": [], "error_fingerprints": []}).status
-        == "HEALTHY"
-    )
+    assert w.sentinel.observe({"services": [], "error_fingerprints": []}).status == "HEALTHY"
     checkpoint = {
         "task": "t",
         "result": "ok",

@@ -43,9 +43,7 @@ from .work_units import WorkUnitService
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = Path(os.environ.get("OS29_DB_PATH", str(ROOT / "data" / "os29.db")))
-SCOPE_PATH = Path(
-    os.environ.get("OS29_SCOPE_PATH", str(ROOT / "config" / "lab_scope.json"))
-)
+SCOPE_PATH = Path(os.environ.get("OS29_SCOPE_PATH", str(ROOT / "config" / "lab_scope.json")))
 PROTOCOL_VERSION = "2024-11-05"
 
 # ── Tower tools — compact lab context ────────────────────────────────────────
@@ -82,9 +80,7 @@ def _capsule_payload(capsule_record: dict[str, Any]) -> dict[str, Any]:
     return capsule_record
 
 
-def _tower_bootstrap(
-    store: Store, agent_id: str, mission_id: str | None = None
-) -> dict[str, Any]:
+def _tower_bootstrap(store: Store, agent_id: str, mission_id: str | None = None) -> dict[str, Any]:
     """~116 token compact lab context. Called first by any agent."""
     ts = datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
     # Live port probe (fast, non-blocking)
@@ -150,9 +146,7 @@ def _tower_resume(store: Store, mission_id: str) -> dict[str, Any]:
         return {"error": str(exc)}
 
 
-def _tower_checkpoint(
-    store: Store, mission_id: str, payload: dict[str, Any]
-) -> dict[str, Any]:
+def _tower_checkpoint(store: Store, mission_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     """Save a mission checkpoint to OS29."""
     required = {
         "project",
@@ -165,9 +159,7 @@ def _tower_checkpoint(
     }
     missing = required - set(payload.keys())
     if missing:
-        return {
-            "error": f"Missing required fields: {sorted(missing)}. Add them and retry."
-        }
+        return {"error": f"Missing required fields: {sorted(missing)}. Add them and retry."}
     try:
         result = store.save_capsule(mission_id, payload)
         return {"saved": True, "mission_id": mission_id, "result": result}
@@ -203,12 +195,8 @@ def _tower_memory_search(
             compact.append(
                 {
                     "type": r.get("source_type", r.get("type", "?")),
-                    "title": r.get("title", r.get("problem_key", r.get("kind", "?")))[
-                        :80
-                    ],
-                    "snippet": str(
-                        r.get("summary", r.get("solution", r.get("content", "")))
-                    )[:200],
+                    "title": r.get("title", r.get("problem_key", r.get("kind", "?")))[:80],
+                    "snippet": str(r.get("summary", r.get("solution", r.get("content", ""))))[:200],
                 }
             )
         return {
@@ -341,9 +329,7 @@ def schemas() -> list[dict[str, Any]]:
         {
             "name": "os29_work_unit_verify",
             "description": "Verify a Work Unit hash chain with an optional independently recorded head.",
-            "inputSchema": obj(
-                {"work_id": string, "expected_head": string}, ["work_id"]
-            ),
+            "inputSchema": obj({"work_id": string, "expected_head": string}, ["work_id"]),
         },
         {
             "name": "os29_work_unit_get",
@@ -353,9 +339,7 @@ def schemas() -> list[dict[str, Any]]:
         {
             "name": "os29_work_unit_list",
             "description": "List current OS29 Work Unit V1 summaries backed only by canonical mission capsules.",
-            "inputSchema": obj(
-                {"limit": {"type": "integer", "minimum": 1, "maximum": 100}}
-            ),
+            "inputSchema": obj({"limit": {"type": "integer", "minimum": 1, "maximum": 100}}),
         },
         {
             "name": "os29_evidence_receipt_record",
@@ -407,9 +391,7 @@ def schemas() -> list[dict[str, Any]]:
         {
             "name": "os29_work_unit_resume",
             "description": "Recover a compact Work Unit V1 context using only its work_id, including last durable evidence receipt and next action.",
-            "inputSchema": obj(
-                {"work_id": string, "agent_id": string}, ["work_id", "agent_id"]
-            ),
+            "inputSchema": obj({"work_id": string, "agent_id": string}, ["work_id", "agent_id"]),
         },
         {
             "name": "os29_work_unit_checkpoint",
@@ -518,9 +500,7 @@ def schemas() -> list[dict[str, Any]]:
         {
             "name": "os29_session_list",
             "description": "List recent local session checkpoints.",
-            "inputSchema": obj(
-                {"limit": {"type": "integer", "minimum": 1, "maximum": 100}}
-            ),
+            "inputSchema": obj({"limit": {"type": "integer", "minimum": 1, "maximum": 100}}),
         },
         {
             "name": "os29_trace_record",
@@ -631,9 +611,7 @@ def schemas() -> list[dict[str, Any]]:
         {
             "name": "os29_intelligence_report",
             "description": "Unified evidence-first Agent DNA, Memory of Failure/REM, Regret candidates, Skill Distillation and Discovery report. No auto-start, unverified causal claims or candidate promotion.",
-            "inputSchema": obj(
-                {"event_limit": {"type": "integer", "minimum": 1, "maximum": 1000}}
-            ),
+            "inputSchema": obj({"event_limit": {"type": "integer", "minimum": 1, "maximum": 1000}}),
         },
         {
             "name": "os29_terminal_exec",
@@ -675,9 +653,7 @@ def schemas() -> list[dict[str, Any]]:
         {
             "name": "tower_bootstrap",
             "description": "Return a compact (~116 token) lab context for any agent at session start: stack, agents, live port status, recent sessions. Optionally loads an active mission capsule. CALL THIS FIRST.",
-            "inputSchema": obj(
-                {"agent_id": string, "mission_id": string}, ["agent_id"]
-            ),
+            "inputSchema": obj({"agent_id": string, "mission_id": string}, ["agent_id"]),
         },
         {
             "name": "tower_resume",
@@ -722,9 +698,7 @@ TOOL_NAMES = set(TOOL_SCHEMAS)
 
 
 def _content(value: Any, is_error: bool = False) -> dict[str, Any]:
-    text = json.dumps(
-        value, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False
-    )
+    text = json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False)
     if len(text.encode("utf-8")) > MAX_OUTPUT_BYTES:
         text = json.dumps({"error": "tool output exceeds limit"})
         is_error = True
@@ -771,11 +745,7 @@ def call_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
                 else "failure"
             )
         else:
-            outcome = (
-                "failure"
-                if isinstance(result, dict) and result.get("isError")
-                else "success"
-            )
+            outcome = "failure" if isinstance(result, dict) and result.get("isError") else "success"
         log_tool_result(name, trace_id, _start, outcome)
         return result
     except Exception as exc:
@@ -831,13 +801,9 @@ def _dispatch(
     if name == "os29_trace_diagnose":
         return diagnose_trace(store, str(args["trace_id"]))
     if name == "os29_capabilities_list":
-        return {
-            "capabilities": store.list_capabilities(limit=int(args.get("limit", 500)))
-        }
+        return {"capabilities": store.list_capabilities(limit=int(args.get("limit", 500)))}
     if name == "os29_capability_edges_list":
-        return {
-            "edges": store.list_capability_edges(limit=int(args.get("limit", 1000)))
-        }
+        return {"edges": store.list_capability_edges(limit=int(args.get("limit", 1000)))}
     if name == "os29_mission_capsule_get":
         value = store.get_capsule(str(args["mission_id"]))
         if not value:
@@ -848,9 +814,7 @@ def _dispatch(
     if name == "os29_work_unit_create":
         return WorkUnitService(store).create(**args)
     if name == "os29_work_unit_verify":
-        return store.verify_work_unit(
-            args["work_id"], expected_head=args.get("expected_head")
-        )
+        return store.verify_work_unit(args["work_id"], expected_head=args.get("expected_head"))
     if name == "os29_work_unit_get":
         return WorkUnitService(store).get(work_id=str(args["work_id"]))
     if name == "os29_work_unit_list":
@@ -887,9 +851,7 @@ def _dispatch(
             raise ValueError("session record not found")
         return value
     if name == "os29_session_list":
-        return {
-            "sessions": store.list_session_records(limit=int(args.get("limit", 20)))
-        }
+        return {"sessions": store.list_session_records(limit=int(args.get("limit", 20)))}
     if name == "os29_trace_record":
         event = TraceEvent.from_dict(args["event"])
         return store.record_event(event)
@@ -925,9 +887,7 @@ def _dispatch(
         }
         unsupported = sorted(set(args) - allowed)
         if unsupported:
-            raise ValueError(
-                "unsupported os29_memory_answer arguments: " + ", ".join(unsupported)
-            )
+            raise ValueError("unsupported os29_memory_answer arguments: " + ", ".join(unsupported))
         return answer_from_memory(
             store,
             args["query"],
@@ -958,9 +918,7 @@ def _dispatch(
             confidence=0.0,
         )
     if name == "os29_intelligence_report":
-        return build_intelligence_report(
-            store, event_limit=int(args.get("event_limit", 500))
-        )
+        return build_intelligence_report(store, event_limit=int(args.get("event_limit", 500)))
     if name == "os29_terminal_exec":
         alias = args["command"]
         if alias not in policy.commands:
@@ -1018,9 +976,7 @@ def _dispatch(
         payload = args.get("payload", {})
         if not isinstance(payload, dict):
             raise ValueError("tower_checkpoint: payload must be a JSON object")
-        return _tower_checkpoint(
-            store, mission_id=str(args["mission_id"]), payload=payload
-        )
+        return _tower_checkpoint(store, mission_id=str(args["mission_id"]), payload=payload)
     if name == "tower_memory_search":
         return _tower_memory_search(
             store,
@@ -1099,8 +1055,7 @@ def handle(message: Any) -> dict[str, Any] | None:
             mcp_tool_error = (
                 str(name) == "os29_memory_answer"
                 and isinstance(result, dict)
-                and result.get("answer_status")
-                not in {"grounded", "evidence_insufficient"}
+                and result.get("answer_status") not in {"grounded", "evidence_insufficient"}
             )
             return {
                 "jsonrpc": "2.0",
@@ -1122,10 +1077,7 @@ def handle(message: Any) -> dict[str, Any] | None:
 
 def encode_response(response: dict[str, Any]) -> str:
     """Serialize one JSON-RPC response using ASCII escapes for Windows code-page safety."""
-    text = (
-        json.dumps(response, ensure_ascii=True, separators=(",", ":"), allow_nan=False)
-        + "\n"
-    )
+    text = json.dumps(response, ensure_ascii=True, separators=(",", ":"), allow_nan=False) + "\n"
     if len(text) > MAX_OUTPUT_BYTES:
         return (
             json.dumps(

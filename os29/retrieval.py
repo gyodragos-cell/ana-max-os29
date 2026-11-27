@@ -84,9 +84,7 @@ def _document(
         "observed_at": _text(observed_at or "", 100),
         "metadata": safe_metadata,
     }
-    canonical = json.dumps(
-        core, ensure_ascii=True, sort_keys=True, separators=(",", ":")
-    )
+    canonical = json.dumps(core, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
     core["content_hash"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return core
 
@@ -122,9 +120,7 @@ def _event_document(event: dict[str, Any]) -> dict[str, Any]:
         "target": safe_target,
         "attributes": safe_attributes,
     }
-    label = " ".join(
-        str(event.get(k, "")) for k in ("component", "kind", "action", "outcome")
-    )
+    label = " ".join(str(event.get(k, "")) for k in ("component", "kind", "action", "outcome"))
     return _document(
         doc_id=f"event:{event['event_id']}",
         source_type="event",
@@ -203,10 +199,7 @@ def _local_document_sources(store: Store) -> list[dict[str, Any]]:
                 return
             resolved = candidate_path.resolve()
             key = str(resolved).casefold()
-            if (
-                resolved.suffix.lower() not in LOCAL_TEXT_EXTENSIONS
-                or key in seen_paths
-            ):
+            if resolved.suffix.lower() not in LOCAL_TEXT_EXTENSIONS or key in seen_paths:
                 return
             seen_paths.add(key)
             paths.append(resolved)
@@ -271,9 +264,7 @@ def _local_document_sources(store: Store) -> list[dict[str, Any]]:
                     chunks.append(piece)
                 if not paragraph:
                     continue
-                candidate_text = (
-                    (current + "\n\n" + paragraph).strip() if current else paragraph
-                )
+                candidate_text = (current + "\n\n" + paragraph).strip() if current else paragraph
                 if len(candidate_text) > 8000 and current:
                     chunks.append(current)
                     current = paragraph
@@ -281,9 +272,7 @@ def _local_document_sources(store: Store) -> list[dict[str, Any]]:
                     current = candidate_text
             if current:
                 chunks.append(current)
-            path_hash = hashlib.sha256(
-                str(path).casefold().encode("utf-8")
-            ).hexdigest()[:20]
+            path_hash = hashlib.sha256(str(path).casefold().encode("utf-8")).hexdigest()[:20]
             modified = str(path.stat().st_mtime)
             for index, chunk in enumerate(chunks, start=1):
                 headings = re.findall(r"(?m)^#{1,6}\s+(.+)$", chunk)
@@ -517,9 +506,7 @@ def refresh_memory_index(store: Store) -> dict[str, Any]:
     docs = _source_documents(store)
     inserted = updated = unchanged = 0
     with store._connect() as conn:
-        existing_rows = conn.execute(
-            "SELECT doc_id, content_hash FROM memory_documents"
-        ).fetchall()
+        existing_rows = conn.execute("SELECT doc_id, content_hash FROM memory_documents").fetchall()
         existing = {row["doc_id"]: row["content_hash"] for row in existing_rows}
         desired_ids = {doc["doc_id"] for doc in docs}
 
@@ -611,17 +598,11 @@ def search_memory(
         if len(terms) >= MAX_QUERY_TERMS:
             break
     if not terms:
-        raise ValueError(
-            "query must contain at least one searchable term of 2+ characters"
-        )
+        raise ValueError("query must contain at least one searchable term of 2+ characters")
     # Each user term is quoted independently so FTS operators/punctuation are not executable syntax.
-    match_expression = " OR ".join(
-        '"' + term.replace('"', '""') + '"' for term in terms
-    )
+    match_expression = " OR ".join('"' + term.replace('"', '""') + '"' for term in terms)
 
-    index_status = (
-        refresh_memory_index(store) if refresh and not store.read_only else None
-    )
+    index_status = refresh_memory_index(store) if refresh and not store.read_only else None
     filters: list[str] = []
     params: list[Any] = [match_expression]
     if include_candidates:
@@ -629,9 +610,7 @@ def search_memory(
     else:
         filters.append("d.trust_status NOT IN ('candidate', 'rejected')")
     if selected_sources:
-        filters.append(
-            "d.source_type IN (" + ",".join("?" for _ in selected_sources) + ")"
-        )
+        filters.append("d.source_type IN (" + ",".join("?" for _ in selected_sources) + ")")
         params.extend(selected_sources)
     where = (" AND " + " AND ".join(filters)) if filters else ""
 
@@ -646,7 +625,7 @@ def search_memory(
                 WHERE memory_fts MATCH ?{where}
                 ORDER BY rank ASC, d.observed_at DESC
                 LIMIT ?""",
-            params + [limit],
+            [*params, limit],
         ).fetchall()
 
     results = []

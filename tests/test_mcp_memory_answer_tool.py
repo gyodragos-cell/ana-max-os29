@@ -22,23 +22,16 @@ def _decode(response):
 
 
 def test_memory_answer_schema_is_bounded_and_has_no_endpoint_override():
-    tool = next(
-        item for item in mcp_stdio.schemas() if item["name"] == "os29_memory_answer"
-    )
+    tool = next(item for item in mcp_stdio.schemas() if item["name"] == "os29_memory_answer")
     schema = tool["inputSchema"]
     assert schema["additionalProperties"] is False
     assert schema["required"] == ["query"]
     props = schema["properties"]
     assert props["query"]["maxLength"] == 2000
     assert props["limit"]["minimum"] == 1 and props["limit"]["maximum"] == 6
-    assert (
-        props["timeout_seconds"]["minimum"] == 1
-        and props["timeout_seconds"]["maximum"] == 90
-    )
+    assert props["timeout_seconds"]["minimum"] == 1 and props["timeout_seconds"]["maximum"] == 90
     assert props["num_ctx"]["minimum"] == 512 and props["num_ctx"]["maximum"] == 4096
-    assert (
-        props["num_predict"]["minimum"] == 16 and props["num_predict"]["maximum"] == 512
-    )
+    assert props["num_predict"]["minimum"] == 16 and props["num_predict"]["maximum"] == 512
     assert "ollama_url" not in props
     assert "source_types" in props and "items" in props["source_types"]
 
@@ -89,9 +82,7 @@ def test_memory_answer_dispatch_uses_fixed_endpoint_and_allowed_bounded_argument
     }
 
 
-def test_memory_answer_rejects_caller_endpoint_override_without_model_call(
-    tmp_path, monkeypatch
-):
+def test_memory_answer_rejects_caller_endpoint_override_without_model_call(tmp_path, monkeypatch):
     monkeypatch.setattr(mcp_stdio, "DB_PATH", tmp_path / "endpoint-guard.db")
     called = False
 
@@ -101,9 +92,7 @@ def test_memory_answer_rejects_caller_endpoint_override_without_model_call(
         raise AssertionError("The model helper must not be reached.")
 
     monkeypatch.setattr(mcp_stdio, "answer_from_memory", forbidden_call)
-    response = _call(
-        {"query": "What changed?", "ollama_url": "https://example.invalid:11434"}
-    )
+    response = _call({"query": "What changed?", "ollama_url": "https://example.invalid:11434"})
     result, payload = _decode(response)
     assert result["isError"] is True
     assert "unsupported os29_memory_answer arguments: ollama_url" in payload["error"]

@@ -33,9 +33,7 @@ def _json(value: Any) -> None:
 
 
 def _store(args: argparse.Namespace) -> Store:
-    return Store(
-        Path(args.db).expanduser() if getattr(args, "db", None) else DEFAULT_DB
-    )
+    return Store(Path(args.db).expanduser() if getattr(args, "db", None) else DEFAULT_DB)
 
 
 def _event(
@@ -70,9 +68,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_verify(args: argparse.Namespace) -> int:
-    result = _store(args).verify_work_unit(
-        args.work_id, expected_head=args.expected_head
-    )
+    result = _store(args).verify_work_unit(args.work_id, expected_head=args.expected_head)
     _json(result)
     return 0 if result["valid"] else 3
 
@@ -206,9 +202,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
         "current_state": {"trace_id": trace_id, "events": 5, "synthetic": True},
         "known_good": ["SQLite persistence", "trace identity", "secret redaction"],
         "known_bad": ["No production root cause was asserted."],
-        "open_issues": [
-            "Connect actual OS28 tool spans to external Frida/MITM traces."
-        ],
+        "open_issues": ["Connect actual OS28 tool spans to external Frida/MITM traces."],
         "next_steps": [
             "Configure an explicitly approved app process",
             "Run a benign authorized test flow",
@@ -254,11 +248,7 @@ def cmd_ingest(args: argparse.Namespace) -> int:
 
 def cmd_capsule_get(args: argparse.Namespace) -> int:
     value = _store(args).get_capsule(args.mission_id)
-    _json(
-        value
-        if value
-        else {"error": "mission capsule not found", "mission_id": args.mission_id}
-    )
+    _json(value if value else {"error": "mission capsule not found", "mission_id": args.mission_id})
     return 0 if value else 4
 
 
@@ -345,11 +335,7 @@ def cmd_session_save(args: argparse.Namespace) -> int:
 
 def cmd_session_get(args: argparse.Namespace) -> int:
     value = _store(args).get_session_record(args.session_id)
-    _json(
-        value
-        if value
-        else {"error": "session not found", "session_id": args.session_id}
-    )
+    _json(value if value else {"error": "session not found", "session_id": args.session_id})
     return 0 if value else 4
 
 
@@ -417,14 +403,10 @@ def cmd_session_import(args: argparse.Namespace) -> int:
     if source_path.suffix.lower() == ".zip":
         with zipfile.ZipFile(source_path, "r") as archive:
             matches = [
-                name
-                for name in archive.namelist()
-                if name.lower().endswith("conversations.json")
+                name for name in archive.namelist() if name.lower().endswith("conversations.json")
             ]
             if not matches:
-                raise ValueError(
-                    "ChatGPT export ZIP does not contain conversations.json"
-                )
+                raise ValueError("ChatGPT export ZIP does not contain conversations.json")
             info = archive.getinfo(matches[0])
             if info.file_size > 50 * 1024 * 1024:
                 raise ValueError("conversations.json exceeds 50 MiB import limit")
@@ -484,19 +466,14 @@ def cmd_session_import(args: argparse.Namespace) -> int:
         conversation_json = json.dumps(
             conversation, ensure_ascii=False, sort_keys=True, separators=(",", ":")
         )
-        conversation_hash = hashlib.sha256(
-            conversation_json.encode("utf-8")
-        ).hexdigest()
+        conversation_hash = hashlib.sha256(conversation_json.encode("utf-8")).hexdigest()
         stable_id = conversation_hash[:24]
-        parts = [
-            transcript[pos : pos + 10000] for pos in range(0, len(transcript), 10000)
-        ] or [""]
+        parts = [transcript[pos : pos + 10000] for pos in range(0, len(transcript), 10000)] or [""]
         for part_index, part in enumerate(parts, start=1):
             session_id = f"chatgpt-export-{stable_id}-p{part_index:04d}"
             payload = {
                 "title": (
-                    title[:450]
-                    + (f" [part {part_index}/{len(parts)}]" if len(parts) > 1 else "")
+                    title[:450] + (f" [part {part_index}/{len(parts)}]" if len(parts) > 1 else "")
                 ),
                 "summary": f"Imported ChatGPT conversation; messages={len(messages)}; part={part_index}/{len(parts)}",
                 "objective": "Historical conversation imported for local continuity; source content is not independently verified.",
@@ -508,22 +485,16 @@ def cmd_session_import(args: argparse.Namespace) -> int:
                 "tags": ["chatgpt-export", "historical", "unverified"],
             }
             try:
-                result = store.save_session_record(
-                    session_id, payload, source="chatgpt_export"
-                )
+                result = store.save_session_record(session_id, payload, source="chatgpt_export")
                 imported += 1
                 redactions += int(result.get("redactions", 0))
             except ValueError as exc:
                 skipped += 1
-                errors.append(
-                    {"conversation": index, "part": part_index, "error": str(exc)}
-                )
+                errors.append({"conversation": index, "part": part_index, "error": str(exc)})
     index_result = refresh_memory_index(store)
     _json(
         {
-            "result": "SESSION_IMPORT_COMPLETE"
-            if not errors
-            else "SESSION_IMPORT_PARTIAL",
+            "result": "SESSION_IMPORT_COMPLETE" if not errors else "SESSION_IMPORT_PARTIAL",
             "conversations_seen": conversations_seen,
             "imported": imported,
             "records_imported_or_replayed": imported,
@@ -660,9 +631,7 @@ def build_parser() -> argparse.ArgumentParser:
         "resume",
         help="build a compact restart packet from recent sessions and indexed evidence",
     )
-    session_resume.add_argument(
-        "--query", default=None, help="optional evidence search query"
-    )
+    session_resume.add_argument("--query", default=None, help="optional evidence search query")
     session_resume.add_argument("--limit", type=int, default=5)
     session_resume.set_defaults(func=cmd_session_resume)
     session_import = session_sub.add_parser(
@@ -747,16 +716,12 @@ def build_parser() -> argparse.ArgumentParser:
     snapshot.add_argument("--timeout", type=float, default=1.2)
     snapshot.set_defaults(func=cmd_snapshot)
 
-    scope = commands.add_parser(
-        "scope-check", help="check whether a target is explicitly approved"
-    )
+    scope = commands.add_parser("scope-check", help="check whether a target is explicitly approved")
     scope.add_argument("target")
     scope.add_argument("--scope", default=str(DEFAULT_SCOPE))
     scope.set_defaults(func=cmd_scope_check)
 
-    demo = commands.add_parser(
-        "demo", help="run a synthetic end-to-end evidence pipeline"
-    )
+    demo = commands.add_parser("demo", help="run a synthetic end-to-end evidence pipeline")
     demo.set_defaults(func=cmd_demo)
 
     trace = commands.add_parser(
@@ -779,9 +744,7 @@ def build_parser() -> argparse.ArgumentParser:
     capsule_get = capsule_sub.add_parser("get")
     capsule_get.add_argument("mission_id")
     capsule_get.set_defaults(func=cmd_capsule_get)
-    capsule_save = capsule_sub.add_parser(
-        "save", help="persist a mission capsule JSON file"
-    )
+    capsule_save = capsule_sub.add_parser("save", help="persist a mission capsule JSON file")
     capsule_save.add_argument("mission_id")
     capsule_save.add_argument("file")
     capsule_save.set_defaults(func=cmd_capsule_save)

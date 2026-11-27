@@ -16,9 +16,7 @@ REQUIRED = (
 )
 
 
-def certify(
-    agent: str, results: Mapping[str, bool]
-) -> dict[str, str | list[str] | bool]:
+def certify(agent: str, results: Mapping[str, bool]) -> dict[str, str | list[str] | bool]:
     missing = [k for k in REQUIRED if k not in results]
     failed = [k for k in REQUIRED if k in results and not results[k]]
     if failed or len(failed) == len(REQUIRED):

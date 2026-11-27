@@ -60,9 +60,7 @@ def _response(
     )
 
 
-def test_local_answer_uses_approved_evidence_and_validates_citation(
-    tmp_path, monkeypatch
-):
+def test_local_answer_uses_approved_evidence_and_validates_citation(tmp_path, monkeypatch):
     secret = "password=fixture-secret-never-send-7d2c"
     store, source = _store_with_approved_doc(
         tmp_path,
@@ -75,9 +73,7 @@ def test_local_answer_uses_approved_evidence_and_validates_citation(
         captured["url"] = request.full_url
         captured["timeout"] = timeout
         captured["payload"] = json.loads(request.data.decode("utf-8"))
-        return _response(
-            "The operator-local-full gateway exposes 139 tools.", citations=["E1"]
-        )
+        return _response("The operator-local-full gateway exposes 139 tools.", citations=["E1"])
 
     monkeypatch.setattr(local_answer, "urlopen", fake_urlopen)
     result = answer_from_memory(
@@ -99,18 +95,13 @@ def test_local_answer_uses_approved_evidence_and_validates_citation(
     assert result["retrieval"]["semantic_embeddings_enabled"] is False
     assert result["keep_alive_seconds"] == 0
     assert "[E1]" in result["answer"]
-    assert (
-        result["retrieval"]["retrieval_query"]
-        == "operator-local-full gateway 139 tools"
-    )
+    assert result["retrieval"]["retrieval_query"] == "operator-local-full gateway 139 tools"
     assert captured["url"] == "http://127.0.0.1:11434/api/generate"
     assert captured["timeout"] == 5
     assert captured["payload"]["model"] == "qwen2.5-coder:3b"
     assert captured["payload"]["stream"] is False
     assert captured["payload"]["keep_alive"] == 0
-    assert captured["payload"]["format"]["properties"]["citations"]["items"][
-        "enum"
-    ] == ["E1"]
+    assert captured["payload"]["format"]["properties"]["citations"]["items"]["enum"] == ["E1"]
     assert captured["payload"]["format"]["required"] == [
         "answer",
         "citations",
@@ -129,9 +120,7 @@ def test_local_answer_flags_unknown_citation_for_review(tmp_path, monkeypatch):
     monkeypatch.setattr(
         local_answer,
         "urlopen",
-        lambda *_args, **_kwargs: _response(
-            "The endpoint returned HTTP 200.", citations=["E99"]
-        ),
+        lambda *_args, **_kwargs: _response("The endpoint returned HTTP 200.", citations=["E99"]),
     )
 
     result = answer_from_memory(
@@ -168,9 +157,7 @@ def test_local_answer_requires_citations_for_grounded_status(tmp_path, monkeypat
     assert result["cited_ids"] == []
 
 
-def test_local_answer_reports_insufficient_evidence_without_calling_model(
-    tmp_path, monkeypatch
-):
+def test_local_answer_reports_insufficient_evidence_without_calling_model(tmp_path, monkeypatch):
     store = Store(tmp_path / "empty.db")
     called = False
 
@@ -192,9 +179,7 @@ def test_local_answer_refuses_non_loopback_model_endpoints(tmp_path, monkeypatch
     store = Store(tmp_path / "empty.db")
 
     def should_not_call(*_args, **_kwargs):
-        raise AssertionError(
-            "The network layer must not be reached for a non-loopback URL."
-        )
+        raise AssertionError("The network layer must not be reached for a non-loopback URL.")
 
     monkeypatch.setattr(local_answer, "urlopen", should_not_call)
     with pytest.raises(ValueError, match="loopback endpoint"):
@@ -238,15 +223,12 @@ def test_memory_answer_cli_is_explicit_and_bounded():
     assert args.retrieve_query == "gateway 139 tools"
 
 
-def test_local_answer_selects_query_matched_window_from_long_evidence(
-    tmp_path, monkeypatch
-):
+def test_local_answer_selects_query_matched_window_from_long_evidence(tmp_path, monkeypatch):
     test_id = "test_local_document_index_preserves_content_past_2000_chars_and_redacts_late_secrets"
     secret = "password=fixture-secret-never-send-context-window-91ea"
     decoy = "UNIQUE_DECOY_START_ONLY_NOT_CONTEXT "
     filler = (
-        "Unrelated older notes about code_search and max_results do not answer this question. "
-        * 75
+        "Unrelated older notes about code_search and max_results do not answer this question. " * 75
     )
     content = (
         "# Mixed evidence\n\n"

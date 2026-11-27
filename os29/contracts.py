@@ -118,9 +118,7 @@ def attest(claim: Mapping[str, Any]) -> dict[str, Any]:
     if missing:
         return {"status": "UNVERIFIED", "missing": missing}
     payload = {k: claim[k] for k in required if k != "hash"}
-    expected = sha256(
-        json.dumps(payload, sort_keys=True, default=str).encode()
-    ).hexdigest()
+    expected = sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
     return {
         "status": "VERIFIED" if claim["hash"] == expected else "INVALID_HASH",
         "expected_hash": expected,
@@ -140,7 +138,5 @@ def make_attestation(
         "result": result,
         "confidence": confidence,
     }
-    payload["hash"] = sha256(
-        json.dumps(payload, sort_keys=True, default=str).encode()
-    ).hexdigest()
+    payload["hash"] = sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
     return payload

@@ -40,9 +40,7 @@ def diagnose_trace(store: Store, trace_id: str) -> dict[str, Any]:
     events = store.list_trace(trace_id)
     if not events:
         raise ValueError(f"trace not found: {trace_id}")
-    failures = [
-        event for event in events if event.get("outcome") in {"failure", "error"}
-    ]
+    failures = [event for event in events if event.get("outcome") in {"failure", "error"}]
     by_id = {event["event_id"]: event for event in events}
     components = [event.get("component", "unknown") for event in events]
     summary = store.trace_summary(trace_id)

@@ -92,9 +92,7 @@ def test_state_and_evidence_rollback_together(tmp_path, operation, kind):
                 next_action="resume",
             )
         elif operation == "complete":
-            service.complete(
-                work_id=WORK_ID, actor_agent="agent-a", expected_revision=1
-            )
+            service.complete(work_id=WORK_ID, actor_agent="agent-a", expected_revision=1)
         else:
             service.fail(
                 work_id=WORK_ID,
@@ -142,9 +140,7 @@ WorkUnitService(store).checkpoint(
     recovered = WorkUnitService(Store(database))
     assert recovered.get(work_id=WORK_ID)["revision"] == 1
     assert recovered.get(work_id=WORK_ID)["current_state"] == {"phase": "before"}
-    assert [event["kind"] for event in recovered.store.list_trace(WORK_ID)] == [
-        "work_unit.created"
-    ]
+    assert [event["kind"] for event in recovered.store.list_trace(WORK_ID)] == ["work_unit.created"]
     resumed = recovered.checkpoint(
         work_id=WORK_ID,
         actor_agent="agent-a",
@@ -231,9 +227,7 @@ else:
     store = Store(database)
     assert WorkUnitService(store).get(work_id=WORK_ID)["revision"] == 11
     events = [
-        event
-        for event in store.list_trace(WORK_ID)
-        if event["kind"] == "work_unit.checkpoint"
+        event for event in store.list_trace(WORK_ID) if event["kind"] == "work_unit.checkpoint"
     ]
     assert len(events) == 10
     assert {event["attributes"]["revision"] for event in events} == set(range(2, 12))

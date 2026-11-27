@@ -31,6 +31,7 @@ startup banner, so history is never lost across restarts.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import logging.handlers
 import os
@@ -155,10 +156,8 @@ class _AppendRotatingHandler(_StreamHandlerBase):
         """Remove oldest archives beyond backup_count."""
         archives = sorted(self._archive_dir.glob(f"{self._path.stem}.*.log"))
         for old in archives[: max(0, len(archives) - self._backup_count)]:
-            try:
+            with contextlib.suppress(OSError):
                 old.unlink(missing_ok=True)
-            except OSError:
-                pass
 
     def _rotate(self) -> None:
         """Copy active log → archive, then truncate active log to 0 bytes.
@@ -195,10 +194,8 @@ class _AppendRotatingHandler(_StreamHandlerBase):
                 self._stream.flush()
             except OSError:
                 # If truncation fails, reopen (fallback).
-                try:
+                with contextlib.suppress(Exception):
                     self._stream.close()
-                except Exception:
-                    pass
                 self._stream = self._open()
                 self.stream = self._stream
 
@@ -241,10 +238,10 @@ class _AppendRotatingHandler(_StreamHandlerBase):
                 archive = self._archive_name()
                 # Append a reason marker.
                 try:
-                    marker = f"\n# --- archived: reason={reason} at {datetime.now().isoformat()} ---\n"
-                    archive.write_bytes(
-                        content + marker.encode(self._encoding, "replace")
+                    marker = (
+                        f"\n# --- archived: reason={reason} at {datetime.now().isoformat()} ---\n"
                     )
+                    archive.write_bytes(content + marker.encode(self._encoding, "replace"))
                     self._prune_archives()
                 except OSError:
                     return None
@@ -273,10 +270,8 @@ _log.setLevel(logging.DEBUG)
 _log.propagate = False
 # Clean up any stale handlers from previous imports/reloads before attaching active handler
 for _h in list(_log.handlers):
-    try:
+    with contextlib.suppress(Exception):
         _h.close()
-    except Exception:
-        pass
     _log.removeHandler(_h)
 _log.addHandler(_handler)
 
@@ -307,10 +302,9 @@ def _sanitize_exc(exc: Exception) -> str:
 
 def _emit(line: str) -> None:
     """Write one log line to stderr AND the file handler."""
-    try:
+    # Detached console: keep writing to the file handler.
+    with contextlib.suppress(Exception):
         print(line, file=sys.stderr, flush=True)
-    except Exception:
-        pass  # detached console — keep writing to file
     try:
         clean = re.sub(r"\033\[[0-9;]*m", "", line)
         _log.info(clean)
@@ -347,9 +341,7 @@ def log_tool_result(
     duration_ms = (time.perf_counter() - start_time) * 1000
     c = _C
     outcome_color = _OUTCOME_COLOR.get(outcome, c["grey"])
-    extra_str = (
-        "  " + "  ".join(f"{k}={v}" for k, v in (extra or {}).items()) if extra else ""
-    )
+    extra_str = "  " + "  ".join(f"{k}={v}" for k, v in (extra or {}).items()) if extra else ""
     tid = f"  {c['grey']}trace={trace_id}{c['reset']}" if trace_id else ""
     _emit(
         f"{c['grey']}[{_ts()}]{c['reset']} "
@@ -397,8 +389,7 @@ def log_startup(server_name: str, db_path: str) -> None:
         archived = _handler.archive_session(reason="previous-session")
         if archived:
             _emit(
-                f"{_C['grey']}[{_ts()}] previous session archived -> "
-                f"{archived.name}{_C['reset']}"
+                f"{_C['grey']}[{_ts()}] previous session archived -> {archived.name}{_C['reset']}"
             )
 
     c = _C
@@ -416,10 +407,7 @@ def log_startup(server_name: str, db_path: str) -> None:
 def log_shutdown() -> None:
     """Emit shutdown marker and archive the current session log."""
     c = _C
-    _emit(
-        f"{c['grey']}[{_ts()}]{c['reset']} "
-        f"{c['yellow']}OS29 SHUTDOWN{c['reset']}  stdin closed"
-    )
+    _emit(f"{c['grey']}[{_ts()}]{c['reset']} {c['yellow']}OS29 SHUTDOWN{c['reset']}  stdin closed")
     archived = _handler.archive_session(reason="clean-shutdown")
     if archived:
         _emit(f"{c['grey']}[{_ts()}] session archived -> {archived.name}{c['reset']}")

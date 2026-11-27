@@ -5,27 +5,27 @@
   "results": [
     {
       "method": "Baseline-1 (Python dict+LIKE)",
-      "p50_ms": 0.0924,
-      "p95_ms": 0.0961,
-      "p99_ms": 0.1377,
+      "p50_ms": 0.0888,
+      "p95_ms": 0.0933,
+      "p99_ms": 0.1158,
       "recall_at_5_pct": 70.0,
-      "mrr": 0.3655
+      "mrr_at_5": 0.3197
     },
     {
       "method": "Baseline-2 (regex full-scan)",
-      "p50_ms": 0.3905,
-      "p95_ms": 0.7153,
-      "p99_ms": 0.9636,
+      "p50_ms": 0.37,
+      "p95_ms": 0.5337,
+      "p99_ms": 0.5954,
       "recall_at_5_pct": 70.0,
-      "mrr": 0.3655
+      "mrr_at_5": 0.3197
     },
     {
       "method": "OS29 FTS5/BM25 (WAL)",
-      "p50_ms": 0.0613,
-      "p95_ms": 0.0918,
-      "p99_ms": 0.1973,
+      "p50_ms": 0.0625,
+      "p95_ms": 0.1137,
+      "p99_ms": 0.1773,
       "recall_at_5_pct": 70.0,
-      "mrr": 0.3197
+      "mrr_at_5": 0.3197
     }
   ]
 }

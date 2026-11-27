@@ -66,9 +66,7 @@ def snapshot_loopback(store: Store, timeout: float = 1.2) -> dict[str, Any]:
         try:
             req = Request(url, headers={"Accept": "application/json"}, method="GET")
             with urlopen(req, timeout=timeout) as response:
-                row["status"] = (
-                    "running" if 200 <= response.status < 300 else "degraded"
-                )
+                row["status"] = "running" if 200 <= response.status < 300 else "degraded"
                 row["http_status"] = response.status
                 payload = json.loads(response.read(65_536).decode("utf-8", "replace"))
                 if isinstance(payload, dict) and name != "ollama":
@@ -88,19 +86,13 @@ def snapshot_loopback(store: Store, timeout: float = 1.2) -> dict[str, Any]:
                         if key in payload
                     }
                 elif isinstance(payload, dict):
-                    row["health_evidence"] = {
-                        "model_count": len(payload.get("models", []))
-                    }
+                    row["health_evidence"] = {"model_count": len(payload.get("models", []))}
                 else:
                     row["health_evidence"] = {}
         except HTTPError as exc:
-            row.update(
-                {"status": "responding_denied_or_error", "http_status": exc.code}
-            )
+            row.update({"status": "responding_denied_or_error", "http_status": exc.code})
         except (URLError, TimeoutError, OSError, ValueError) as exc:
-            row.update(
-                {"status": "offline_or_timeout", "error_type": type(exc).__name__}
-            )
+            row.update({"status": "offline_or_timeout", "error_type": type(exc).__name__})
 
         port_listeners = listeners.get(port, [])
         row["listener_count"] = len(port_listeners)
@@ -135,11 +127,7 @@ def snapshot_loopback(store: Store, timeout: float = 1.2) -> dict[str, Any]:
             evidence={
                 "source": "loopback_http_probe",
                 "url": url,
-                **{
-                    k: v
-                    for k, v in row.items()
-                    if k not in {"kind", "name", "status", "url"}
-                },
+                **{k: v for k, v in row.items() if k not in {"kind", "name", "status", "url"}},
                 "observed_status": raw_status,
             },
             owner="OS29 read-only runtime snapshot",

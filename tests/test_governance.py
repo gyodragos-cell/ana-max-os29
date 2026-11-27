@@ -33,14 +33,9 @@ def test_incident_postmortem():
 
 def test_registries_require_observable_data():
     c = CertificationRegistry()
-    assert (
-        c.register("OS29", "CERTIFIED", {"source": "tests"})["status"] == "REGISTERED"
-    )
+    assert c.register("OS29", "CERTIFIED", {"source": "tests"})["status"] == "REGISTERED"
     t = TrustRegistry()
     assert t.record("OS29", 1, 0, 0)["status"] == "RECORDED"
     g = GovernanceRegistry()
     assert g.assign("Tracing", "OS29")["status"] == "ASSIGNED"
-    assert (
-        OrganizationalMemory().remember("p", "c", "s", "e", "r", "i")["status"]
-        == "STORED"
-    )
+    assert OrganizationalMemory().remember("p", "c", "s", "e", "r", "i")["status"] == "STORED"

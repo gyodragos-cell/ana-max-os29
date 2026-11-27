@@ -2,39 +2,54 @@ name: OS29 Core privacy and tests
 
 on:
   push:
-    branches: [main, "release/**"]
+    branches: [main, "release/**", "fix/production-final-*"]
   pull_request:
-    branches: [main]
+    branches: [main, "release/**"]
 
 permissions:
   contents: read
 
 jobs:
   privacy-and-tests:
-    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 2
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - name: Install package
-        run: python -m pip install -e ".[test]"
+          python-version: ${{ matrix.python-version }}
+      - name: Install package and dev checks
+        run: python -m pip install -e ".[dev]"
       - name: Tracked files, paths and secret scan
         run: python scripts/privacy_gate.py
-      - name: Gitleaks if available
+      - name: Lint and format check
         run: |
-          if command -v gitleaks >/dev/null 2>&1; then
-            gitleaks git --redact --exit-code 1 .
-          else
-            echo "gitleaks unavailable; Python regex privacy scanner completed"
-          fi
+          python -m ruff check os29 tests examples benchmarks
+          python -m ruff format --check os29 tests examples benchmarks
+      - name: Type check (strict)
+        run: python -m mypy os29
       - name: Compile
         run: python -m compileall -q os29 integrations examples scripts tests
-      - name: Test complete public suite
-        run: python -m pytest -q
-      - name: Offline smoke
-        run: python scripts/offline_smoke.py
+      - name: Test complete public suite with coverage
+        run: python -m pytest -q --cov=os29 --cov-report=term-missing --cov-fail-under=90
+      - name: Offline smoke and runnable examples
+        run: |
+          python scripts/offline_smoke.py
+          python examples/01_quickstart_work_unit.py
+          python examples/02_crash_recovery_chaos.py
+          python examples/03_mcp_server_client_e2e.py
+          python examples/04_custom_retriever_hybrid.py
+          python examples/05_multiagent_handoff_demo.py
       - name: Whitespace check
-        run: git diff --check
+        run: git diff --check HEAD^ HEAD

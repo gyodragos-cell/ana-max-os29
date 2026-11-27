@@ -107,9 +107,7 @@ class OS29Handler(BaseHTTPRequestHandler):
         elif path.startswith("/capsules/"):
             mission_id = unquote(path[len("/capsules/") :])
             capsule = self.store.get_capsule(mission_id)
-            self._send(
-                200 if capsule else 404, capsule or {"error": "capsule_not_found"}
-            )
+            self._send(200 if capsule else 404, capsule or {"error": "capsule_not_found"})
         else:
             self._send(404, {"error": "not_found"})
 
@@ -166,7 +164,6 @@ def make_server(
 
 
 def main() -> None:
-    root = ROOT
     db = Path(os.environ.get("OS29_DB_PATH", str(Path.home() / ".os29" / "os29.db")))
     token = os.environ.get("OS29_GATEWAY_TOKEN", "")
     host = "127.0.0.1"
