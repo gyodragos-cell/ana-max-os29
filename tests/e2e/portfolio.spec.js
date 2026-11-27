@@ -11,7 +11,7 @@ const portfolioSections = [
   "projects"
 ];
 
-const pageRoutes = ["/", "/live.html", "/cv.html", "/core.html", "/start-here.html"];
+const pageRoutes = ["/", "/live.html", "/cv.html", "/core.html", "/start-here.html", "/wow.html"];
 const viewportWidths = [320, 375, 390, 768, 1024, 1365];
 
 test("homepage navigation points to real sections and portfolio pages", async ({ page }) => {
@@ -73,40 +73,62 @@ test("portfolio layouts do not overflow at common mobile and desktop widths", as
   }
 });
 
-test("Live Profile personalizes locally without submitting the chosen name", async ({ page }) => {
-  const displayName = "Playwright QA Probe";
-  const requestsContainingName = [];
-  page.on("request", (request) => {
-    const body = request.postData() || "";
-    if (request.url().includes(encodeURIComponent(displayName)) || body.includes(displayName)) {
-      requestsContainingName.push(request.url());
-    }
-  });
-
+test("Tower demo advances, hands off, verifies and resets with no remote requests", async ({ page }) => {
+  const errors = [], external = [];
+  page.on("pageerror", e => errors.push(e.message));
+  page.on("request", r => { if (!r.url().startsWith("http://127.0.0.1:4173/")) external.push(r.url()); });
   await page.goto("/live.html");
-  await page.getByLabel("Choose a display name").fill(displayName);
-  await page.getByRole("button", { name: "Set my profile" }).click();
-
-  await expect(page.locator("#profileName")).toHaveText(displayName);
-  await expect(page.locator("#greeting")).toHaveText(displayName);
-  await expect(page.locator("#avatar")).toHaveText("P");
-  expect(new URL(page.url()).search).toBe("");
-  expect(requestsContainingName).toEqual([]);
+  await expect(page.locator("h1")).toContainText("TOWER CONTROL");
+  await expect(page.getByText("PUBLIC DEMO", {exact:true})).toBeVisible();
+  await expect(page.locator("#nextAction")).toContainText("Reproduce");
+  await page.locator("#advance").click();
+  await expect(page.locator("#owner")).toContainText("Qwen");
+  await page.locator("#advance").click();
+  await expect(page.locator("#owner")).toContainText("GPT-6");
+  await page.locator("#advance").click();
+  await expect(page.locator("#gateState")).toHaveText("PASS");
+  await page.getByRole("button", {name:"View evidence in Work Units"}).click();
+  await expect(page.locator("#workDetail")).toContainText("7/7");
+  await page.locator("#nav-dashboard").click();
+  await page.locator("#reset").click();
+  await expect(page.locator("#gateState")).toHaveText("PENDING");
+  expect(errors).toEqual([]);
+  expect(external).toEqual([]);
 });
 
-test("Live Profile shows its local status sample", async ({ page }) => {
+test("all Tower views work, service simulation and tool filters stay local", async ({ page }) => {
   await page.goto("/live.html");
-  await expect(page.locator("#connBadge")).not.toHaveText("Checking…");
-  await expect(page.locator("#updatedAt")).toContainText("LOCAL SAMPLE");
-  await expect(page.locator("#networkState")).not.toHaveText("—");
-  await expect(page.locator("#uptime")).not.toHaveText("0 seconds");
+  for (const id of ["services","config","inventory","profiles","logs","workunits","terminals","architecture","frida","gpt","dashboard"]) {
+    await page.locator("#nav-"+id).click();
+    await expect(page.locator("#view-"+id)).toBeVisible();
+  }
+  await page.locator("#nav-services").click();
+  await page.locator("#serviceSearch").fill("ANA MAX");
+  await expect(page.locator("#serviceList .service")).toHaveCount(1);
+  await page.locator("#serviceList").getByRole("button",{name:"Simulate stop"}).click();
+  await page.locator("#toolSearch").fill("os29_trace_get");
+  await expect(page.locator("#toolCatalog .service")).toHaveCount(1);
+  await page.locator("#nav-dashboard").click();
+  await expect(page.locator("#labState")).toHaveText("DEGRADED");
+  await page.locator("#reset").click();
+  await expect(page.locator("#labState")).toHaveText("READY");
+  await expect(page.locator("img").first()).toHaveJSProperty("complete",true);
+  expect(await page.locator("img").first().evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
 });
 
-test("CV page exposes its title, Live Profile link and print control", async ({ page }) => {
+test("historical repair is honest, translated, and does not expose local paths", async ({ page }) => {
+  await page.goto("/wow.html");
+  await expect(page.getByRole("heading",{level:1})).toContainText("One real bug.");
+  await expect(page.locator("main")).toContainText("433/433");
+  await expect(page.locator("main")).toContainText("Qwen 7B did not pass all tests on its own");
+  await expect(page.locator("main")).toContainText("historical local results");
+  expect(await page.locator("body").innerText()).not.toMatch(/C:\\Users\\|D:\\OS28_MEMORY|127\.0\.0\.1/);
+});
+test("CV page exposes its title, Tower Control link and print control", async ({ page }) => {
   await page.goto("/cv.html");
   await expect(page).toHaveTitle(/Professional CV \| ANA MAX/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Clear evidence.");
-  await expect(page.getByRole("link", { name: /Live Profile/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Tower Control/i })).toBeVisible();
   await expect(page.getByText("Print / Save PDF", { exact: true })).toBeVisible();
 });
 
@@ -141,4 +163,17 @@ test("Core release has the exact published links, install command and no private
     "href",
     "https://github.com/gyodragos-cell/ana-max-os29-core/actions/runs/44537253988"
   );
+});
+
+test("direct OS28 tool link opens the catalog", async ({page}) => {
+  await page.goto("/live.html#services");
+  await expect(page.locator("#view-services")).toBeVisible();
+  await expect(page.locator("#toolCatalog")).toContainText("os29_work_unit_resume");
+  await expect(page.getByText("Bridge catalog entries")).toBeVisible();
+});
+test("WOW evidence identifiers shrink inside their cards at 320px", async ({page}) => {
+  await page.setViewportSize({width:320,height:800});
+  await page.goto("/wow.html");
+  const overflow = await page.locator(".metrics,.track,.compare,.evidence,.card,.stat,.fail,.pass,.row > div,.meta > *").evaluateAll(els => els.filter(e => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > innerWidth + 1).map(e => e.className || e.tagName));
+  expect(overflow).toEqual([]);
 });

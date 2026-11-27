@@ -44,10 +44,18 @@ test("every local HTML page linked from a published page is deployed too", () =>
 test("deployment copies only explicit public HTML, never private lab directories", () => {
   const staged = approvedPublishedPages();
   expect([...staged].sort()).toEqual([
-    "core.html", "cv.html", "index.html", "live.html", "start-here.html"
+    "core.html", "cv.html", "index.html", "live.html", "start-here.html", "wow.html"
   ]);
   const copyCommand = workflow.split(/\r?\n/).find((line) =>
     line.trim().startsWith("cp site/portfolio/index.html")
   );
   expect(copyCommand).not.toMatch(/-r\b|\.\.\/|\*|private|memory|logs|\.db/i);
+});
+
+test("public Tower images and evidence page are explicitly deployed", () => {
+  expect(workflow).toContain("cp site/portfolio/assets/tower-original.png site/portfolio/assets/four-terminals.png _site/assets/");
+  for (const asset of ["tower-original.png","four-terminals.png"]) expect(existsSync(resolve(site,"assets",asset))).toBe(true);
+  expect(workflow).toContain("test -s _site/wow.html");
+  const tower = readFileSync(resolve(site,"live.html"),"utf8");
+  expect(tower).not.toMatch(/fetch\s*\(|XMLHttpRequest|WebSocket|\/api\/|127\.0\.0\.1|C:\\Users\\|D:\\OS28_MEMORY/);
 });
